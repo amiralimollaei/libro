@@ -8,7 +8,7 @@ from ..model.book import Genre, Author, Book
 class AddTab(ft.Container):
     def __init__(self, **container_kwargs):
         self.on_save: Callable | None = None
-        
+
         self.title_input = ft.TextField(label="Book Title", expand=True)
         self.author_first_name_input = ft.TextField(label="Author First Name", expand=True)
         self.author_last_name_input = ft.TextField(label="Author Last Name", expand=True)
@@ -44,6 +44,20 @@ class AddTab(ft.Container):
 
         super().__init__(content=self.main_column, **container_kwargs)
 
+    def reset(self):
+        text_fileds = [
+            self.title_input,
+            self.author_first_name_input,
+            self.author_last_name_input,
+            self.pages_input,
+            self.summary_input
+        ]
+
+        for field in text_fileds:
+            field.value = ""
+
+        self.genre_input.value = ""
+
     def save(self, e):
         return self.on_save(e) if self.on_save else None
 
@@ -74,3 +88,10 @@ class LibraryTab(ft.Container):
         )
 
         super().__init__(content=self.main_column, **container_kwargs)
+
+    def update_books(self, books: list[Book]):
+        self.book_list_view.controls = []
+        for book in books:
+            self.book_list_view.controls.append(
+                ft.Text(book.title)
+            )
