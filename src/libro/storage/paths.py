@@ -44,13 +44,13 @@ def clean_dict(d: dict):
         elif isinstance(v, Sequence):
             if len(v) == 0:
                 continue
-            if not isinstance(v, str):  # other than strings, we every other sequence is a nested dynamic type
+            # Other than strings, every other sequence is assumed to be a nested dynamic type
+            if not isinstance(v, str):
                 v = [(clean_dict(e) if isinstance(e, dict) else e) for e in v]
         final_dict[k] = v
     return final_dict
 
 
-# if the LibroPaths.RESOURCES folder doesn't exist, we should copy all our default assets in there when the module is imported
 if __package__ is not None:
     import importlib.resources
     import shutil
@@ -58,6 +58,7 @@ if __package__ is not None:
     MODULE_PATH = importlib.resources.files(__package__)
     RESOURCES_PATH = str(MODULE_PATH / "assets")
 
+    # If the LibroPaths.RESOURCES folder doesn't exist, We should copy all our default assets
     def copy_if_absent(src: str, dst: str, *, follow_symlinks: bool = True):
         if os.path.exists(dst):
             if os.path.isdir(dst):
