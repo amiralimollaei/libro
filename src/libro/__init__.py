@@ -3,18 +3,19 @@ import flet as ft
 from .view.main import MainView
 
 
-def app(page: ft.Page):
-    page.title = "Libro - Your Personal Library"
-    page.vertical_alignment = ft.MainAxisAlignment.CENTER
-    page.padding = ft.Padding.zero()
+class Libro(MainView):
+    def __init__(self):
+        super().__init__()
+        self.add_tab.register_on_save(lambda e: print(self.add_tab.get_book_object()))
 
-    view = MainView()
+    def run(self):
+        def app(page: ft.Page):
+            page.title = "Libro - Your Personal Library"
+            page.vertical_alignment = ft.MainAxisAlignment.CENTER
+            page.padding = ft.Padding.zero()
+            page.add(self)
 
-    # register functionailty
-    view.add_tab.register_on_save(lambda e: print(view.add_tab.get_book_object()))
-
-    page.add(view)
-
+        ft.run(app)
 
 def main():
-    ft.run(app)
+    Libro().run()
