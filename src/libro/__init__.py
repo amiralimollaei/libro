@@ -8,7 +8,12 @@ def app(page: ft.Page):
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
     page.padding = ft.Padding.zero()
 
-    page.add(MainView())
+    view = MainView()
+
+    # register functionailty
+    view.add_tab.register_on_save(lambda e: print(view.add_tab.get_book_object()))
+
+    page.add(view)
 
 
 def main():
