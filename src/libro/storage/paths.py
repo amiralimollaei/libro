@@ -20,6 +20,11 @@ class LibroPaths:
     def books(cls) -> Path:
         """Contains data for every books in our library"""
         return cls.root() / "books"
+    
+    @classmethod
+    def reading(cls) -> Path:
+        """Contains data related to the reading tab"""
+        return cls.root() / "reading"
 
     @classmethod
     def covers(cls) -> Path:
@@ -30,6 +35,11 @@ class LibroPaths:
     def assets(cls) -> Path:
         """Contains Libro internal assets"""
         return cls.root() / "assets"
+
+    @classmethod
+    def statistics(cls) -> Path:
+        """Contains the statistics object"""
+        return cls.root() / "statistics.json"
 
 
 def clean_dict(d: dict):
