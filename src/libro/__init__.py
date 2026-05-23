@@ -6,7 +6,7 @@ import flet as ft
 from .storage.paths import LibroPaths
 from .model.reading import ReadingInfo
 from .model.book import Book
-from .storage.json import JsonObjectStorage
+from .storage.json import JsonDirectoryStorage
 from .view.main import MainView
 
 
@@ -16,8 +16,8 @@ class Libro(MainView):
 
         self.app_page: ft.Page | None = None
 
-        self.books_storage = JsonObjectStorage[Book].from_directory(item_cls=Book, directory=LibroPaths.books())
-        self.reading_storage = JsonObjectStorage[ReadingInfo].from_directory(
+        self.books_storage = JsonDirectoryStorage[Book].from_directory(item_cls=Book, directory=LibroPaths.books())
+        self.reading_storage = JsonDirectoryStorage[ReadingInfo].from_directory(
             item_cls=ReadingInfo, directory=LibroPaths.books() / "reading")
 
         self.lib_tab.update_books(self.books_storage.objects)

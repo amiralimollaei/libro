@@ -9,7 +9,7 @@ from dataclasses_json.api import DataClassJsonMixin
 T = TypeVar("T", bound="DataClassJsonMixin")
 
 
-class JsonObjectStorage(Generic[T]):
+class JsonDirectoryStorage(Generic[T]):
     def __init__(self, directory: Path, objects: Optional[list[T]] = None) -> None:
         super().__init__()
         directory.mkdir(exist_ok=True)
@@ -37,7 +37,7 @@ class JsonObjectStorage(Generic[T]):
                 open(filename, mode="wb").write(json_data)
 
     @classmethod
-    def from_directory(cls, item_cls: Type[T], directory: Path) -> JsonObjectStorage[T]:
+    def from_directory(cls, item_cls: Type[T], directory: Path) -> JsonDirectoryStorage[T]:
         objects: list[T] = []
 
         if not directory.exists():
