@@ -12,7 +12,7 @@ class Author:
     first_name: str
     last_name: str
     biograpohy: Optional[str] = None
-    
+
     def full_name(self):
         return self.first_name + " " + self.last_name
 
@@ -31,5 +31,7 @@ class Book(DataClassJsonMixin):
     title: str
     author: Author
     genre: Genre
+    pages: int
+    publish_year: int
     summary: Optional[str] = None
     id: int | None = None

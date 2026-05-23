@@ -21,10 +21,31 @@ class Libro(MainView):
         self.lib_tab.update_books(self.books_storage.objects)
         self.todo_tab.update_todos(self.todo_storage.objects, self.books_storage.objects)
 
-        self.add_tab.register_on_save_fn(lambda x: self.add_new_book(self.add_tab.get_book_object()))
+        self.add_tab.register_on_save_fn(self.on_save)
         self.todo_tab.register_on_todo_dismissed_fn(self.on_todo_dismissed)
 
-    def add_new_book(self, book: Book):
+    def on_save(self, e):
+        assert self.app_page
+        
+        book = None
+        try:
+            book = self.add_tab.get_book_object()
+        except AttributeError:
+            banner = ft.AlertDialog(
+                title=ft.Text("Add Book"),
+                content=ft.Text("Please fill all the required fields."),
+                actions=[
+                    ft.TextButton(
+                        "Ok",
+                        on_click=lambda e: self.app_page.pop_dialog()  # pyright: ignore[reportOptionalMemberAccess]
+                    )
+                ],
+                open=True,
+            )
+            self.app_page.show_dialog(banner)
+            return
+        
+        assert book
         book.id = int(time.time() * 1000000)
 
         self.books_storage.add(book)
@@ -32,27 +53,26 @@ class Libro(MainView):
 
         self.add_tab.reset()
 
-        if self.app_page:
-            def add_to_todo_list(e):
-                self.add_new_todo(book)
-                self.app_page.pop_dialog()  # pyright: ignore[reportOptionalMemberAccess]
+        def add_to_todo_list(e):
+            self.add_new_todo(book)
+            self.app_page.pop_dialog()  # pyright: ignore[reportOptionalMemberAccess]
 
-            banner = ft.AlertDialog(
-                title=ft.Text("Add Book"),
-                content=ft.Text("Book was successfully added to your library."),
-                actions=[
-                    ft.TextButton(
-                        "Dismiss",
-                        on_click=lambda e: self.app_page.pop_dialog()  # pyright: ignore[reportOptionalMemberAccess]
-                    ),
-                    ft.TextButton(
-                        "Add To Todo List",
-                        on_click=add_to_todo_list
-                    )
-                ],
-                open=True,
-            )
-            self.app_page.show_dialog(banner)
+        banner = ft.AlertDialog(
+            title=ft.Text("Add Book"),
+            content=ft.Text("Book was successfully added to your library."),
+            actions=[
+                ft.TextButton(
+                    "Dismiss",
+                    on_click=lambda e: self.app_page.pop_dialog()  # pyright: ignore[reportOptionalMemberAccess]
+                ),
+                ft.TextButton(
+                    "Add To Todo List",
+                    on_click=add_to_todo_list
+                )
+            ],
+            open=True,
+        )
+        self.app_page.show_dialog(banner)
 
         self.lib_tab.update_books(self.books_storage.objects)
 
