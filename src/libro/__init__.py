@@ -100,6 +100,8 @@ class Libro(MainView):
 
     def app(self, page: ft.Page):
         self.app_page = page
+        self.app_page.window.min_width = 1080
+        self.app_page.window.min_height = 540
 
         self.app_page.title = "Libro - Your Personal Library"
         self.app_page.vertical_alignment = ft.MainAxisAlignment.CENTER
