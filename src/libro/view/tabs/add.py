@@ -2,7 +2,7 @@ from typing import Callable
 
 import flet as ft
 
-from ..model.book import Genre, Author, Book
+from ...model.book import Genre, Author, Book
 
 
 class AddTab(ft.Container):
@@ -61,7 +61,7 @@ class AddTab(ft.Container):
     def save(self, e):
         return self.on_save(e) if self.on_save else None
 
-    def register_on_save(self, fn: Callable):
+    def register_on_save_fn(self, fn: Callable):
         self.on_save = fn
 
     def get_book_object(self):
@@ -74,24 +74,3 @@ class AddTab(ft.Container):
             genre=Genre[self.genre_input.value.title()],  # pyright: ignore[reportOptionalMemberAccess]
             summary=self.summary_input.value
         )
-
-
-class LibraryTab(ft.Container):
-    def __init__(self, **container_kwargs):
-        self.book_list_view = ft.ListView(expand=True, spacing=10, padding=20)
-
-        self.main_column = ft.Column(
-            [
-                self.book_list_view,
-            ],
-            expand=True
-        )
-
-        super().__init__(content=self.main_column, **container_kwargs)
-
-    def update_books(self, books: list[Book]):
-        self.book_list_view.controls = []
-        for book in books:
-            self.book_list_view.controls.append(
-                ft.Text(book.title)
-            )

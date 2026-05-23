@@ -1,6 +1,9 @@
+import time
+
 import flet as ft
 
 from .storage.paths import LibroPaths
+from .model.todo import Todo
 from .model.book import Book
 from .storage.json import JsonObjectStorage
 from .view.main import MainView
@@ -10,27 +13,81 @@ class Libro(MainView):
     def __init__(self):
         super().__init__()
 
-        self.books_storage = JsonObjectStorage[Book].from_directory(item_cls=Book, directory=LibroPaths.books())
-        self.lib_tab.update_books(self.books_storage.objects)
+        self.app_page: ft.Page | None = None
 
-        self.add_tab.register_on_save(lambda x: self.add_new_book(self.add_tab.get_book_object()))
+        self.books_storage = JsonObjectStorage[Book].from_directory(item_cls=Book, directory=LibroPaths.books())
+        self.todo_storage = JsonObjectStorage[Todo].from_directory(item_cls=Todo, directory=LibroPaths.books() / "todo")
+
+        self.lib_tab.update_books(self.books_storage.objects)
+        self.todo_tab.update_todos(self.todo_storage.objects, self.books_storage.objects)
+
+        self.add_tab.register_on_save_fn(lambda x: self.add_new_book(self.add_tab.get_book_object()))
+        self.todo_tab.register_on_todo_dismissed_fn(self.on_todo_dismissed)
 
     def add_new_book(self, book: Book):
+        book.id = int(time.time() * 1000000)
+
         self.books_storage.add(book)
         self.books_storage.save()
 
-        self.lib_tab.update_books(self.books_storage.objects)
         self.add_tab.reset()
+
+        if self.app_page:
+            def add_to_todo_list(e):
+                self.add_new_todo(book)
+                self.app_page.pop_dialog()  # pyright: ignore[reportOptionalMemberAccess]
+
+            banner = ft.AlertDialog(
+                title=ft.Text("Add Book"),
+                content=ft.Text("Book was successfully added to your library."),
+                actions=[
+                    ft.TextButton(
+                        "Dismiss",
+                        on_click=lambda e: self.app_page.pop_dialog()  # pyright: ignore[reportOptionalMemberAccess]
+                    ),
+                    ft.TextButton(
+                        "Add To Todo List",
+                        on_click=add_to_todo_list
+                    )
+                ],
+                open=True,
+            )
+            self.app_page.show_dialog(banner)
+
+        self.lib_tab.update_books(self.books_storage.objects)
+
         self.update()
 
-    def run(self):
-        def app(page: ft.Page):
-            page.title = "Libro - Your Personal Library"
-            page.vertical_alignment = ft.MainAxisAlignment.CENTER
-            page.padding = ft.Padding.zero()
-            page.add(self)
+    def add_new_todo(self, book: Book):
+        assert book.id
+        todo = Todo(id=book.id, time=time.time())
+        self.todo_storage.add(todo)
+        self.todo_storage.save()
 
-        ft.run(app)
+        self.todo_tab.update_todos(self.todo_storage.objects, self.books_storage.objects)
+
+        self.update()
+
+    def on_todo_dismissed(self, todo: Todo, book: Book):
+        print(todo, book)
+
+        self.todo_storage.remove(todo)
+        self.todo_storage.save()
+
+        self.todo_tab.update_todos(self.todo_storage.objects, self.books_storage.objects)
+
+        self.update()
+
+    def app(self, page: ft.Page):
+        self.app_page = page
+
+        self.app_page.title = "Libro - Your Personal Library"
+        self.app_page.vertical_alignment = ft.MainAxisAlignment.CENTER
+        self.app_page.padding = ft.Padding.zero()
+        self.app_page.add(self)
+
+    def run(self):
+        ft.run(self.app, assets_dir=str(LibroPaths.assets().absolute()))
 
 
 def main():
