@@ -49,23 +49,3 @@ def clean_dict(d: dict):
                 v = [(clean_dict(e) if isinstance(e, dict) else e) for e in v]
         final_dict[k] = v
     return final_dict
-
-
-if __package__ is not None:
-    import importlib.resources
-    import shutil
-
-    MODULE_PATH = importlib.resources.files(__package__)
-    RESOURCES_PATH = str(MODULE_PATH / "assets")
-
-    # If the LibroPaths.RESOURCES folder doesn't exist, We should copy all our default assets
-    def copy_if_absent(src: str, dst: str, *, follow_symlinks: bool = True):
-        if os.path.exists(dst):
-            if os.path.isdir(dst):
-                raise FileExistsError(f"directory exists with the same name as destination the file: {dst}")
-            return
-        shutil.copy2(src, dst, follow_symlinks=follow_symlinks)
-
-    def copy_default_resources():
-        os.makedirs(LibroPaths.assets(), exist_ok=True)
-        shutil.copytree(RESOURCES_PATH, LibroPaths.assets(), dirs_exist_ok=True, copy_function=copy_if_absent)

@@ -34,4 +34,5 @@ class Book(DataClassJsonMixin):
     pages: int
     publish_year: int
     summary: Optional[str] = None
+    cover: Optional[str] = None
     id: int | None = None

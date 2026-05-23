@@ -4,6 +4,8 @@ from typing import Callable
 
 import flet as ft
 
+from libro.storage.paths import LibroPaths
+
 from ...model.book import Genre, Author, Book
 
 
@@ -12,7 +14,7 @@ class AddTab(ft.Container):
         self.on_save: Callable | None = None
 
         self.title_input = ft.TextField(
-            label="Book Title", 
+            label="Book Title",
             on_change=self.validate_title_input,
             expand=True
         )
@@ -45,10 +47,29 @@ class AddTab(ft.Container):
             width=160
         )
         self.summary_input = ft.TextField(
-            label="Book Summary (Optional)", 
-            expand=True, 
+            label="Book Summary (Optional)",
+            expand=True,
             multiline=True
         )
+
+        async def book_cover_pick(e):
+            book_cover_file_picker = ft.FilePicker()
+            picked_files = await book_cover_file_picker.pick_files(file_type=ft.FilePickerFileType.IMAGE)
+            if picked_files and picked_files[0].path:
+                self.book_cover_preview.src = picked_files[0].path
+
+        self.book_cover_input = ft.Button(
+            content="Pick Cover",
+            on_click=book_cover_pick,
+            expand=False
+        )
+
+        self.book_cover_preview = ft.Image(
+            src=str(LibroPaths.assets().absolute() / "placeholder-cover.png"),
+            width=160,
+            expand=True
+        )
+
         self.save_button = ft.ElevatedButton(
             "Save to Library",
             icon=ft.icons.Icons.SAVE,
@@ -63,9 +84,18 @@ class AddTab(ft.Container):
                 ]),
                 ft.Row([
                     self.author_first_name_input, self.author_last_name_input, self.pages_input, self.publish_year_input, self.genre_input,
-
                 ]),
-                self.summary_input,
+                ft.Row(
+                    [
+                        self.summary_input,
+                        ft.Column(
+                            [self.book_cover_preview, self.book_cover_input],
+                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                        )
+                    ],
+                    vertical_alignment=ft.CrossAxisAlignment.START,
+                    expand=True,
+                ),
                 self.save_button,
             ],
             expand=True,
@@ -76,16 +106,16 @@ class AddTab(ft.Container):
 
     def validate_title_input(self, e):
         self.title_input.border_color = None
-    
+
     def validate_first_name_input(self, e):
         self.author_first_name_input.border_color = None
-    
+
     def validate_last_name_input(self, e):
         self.author_last_name_input.border_color = None
-    
+
     def validate_genre_input(self, e):
         self.genre_input.border_color = None
-    
+
     def validate_pages_input(self, e):
         self.pages_input.value = re.sub(r'[^\d]', '', self.pages_input.value)
         try:
@@ -93,7 +123,7 @@ class AddTab(ft.Container):
             self.pages_input.border_color = None
         except Exception:
             self.pages_input.border_color = ft.Colors.ERROR
-    
+
     def validate_publish_year_input(self, e):
         self.publish_year_input.value = re.sub(r'[^\d]', '', self.publish_year_input.value)
         try:
@@ -146,5 +176,6 @@ class AddTab(ft.Container):
             genre=Genre[self.genre_input.value.title()],  # pyright: ignore[reportOptionalMemberAccess]
             pages=int(self.pages_input.value),
             publish_year=int(self.publish_year_input.value),
-            summary=self.summary_input.value
+            summary=self.summary_input.value,
+            cover=self.book_cover_preview.src  # pyright: ignore[reportArgumentType]
         )

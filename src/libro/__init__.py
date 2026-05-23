@@ -1,3 +1,4 @@
+import os
 import time
 
 import flet as ft
@@ -16,7 +17,8 @@ class Libro(MainView):
         self.app_page: ft.Page | None = None
 
         self.books_storage = JsonObjectStorage[Book].from_directory(item_cls=Book, directory=LibroPaths.books())
-        self.reading_storage = JsonObjectStorage[ReadingInfo].from_directory(item_cls=ReadingInfo, directory=LibroPaths.books() / "reading")
+        self.reading_storage = JsonObjectStorage[ReadingInfo].from_directory(
+            item_cls=ReadingInfo, directory=LibroPaths.books() / "reading")
 
         self.lib_tab.update_books(self.books_storage.objects)
         self.reading_tab.update_reading_books(self.reading_storage.objects, self.books_storage.objects)
@@ -26,7 +28,7 @@ class Libro(MainView):
 
     def on_save(self, e):
         assert self.app_page
-        
+
         book = None
         try:
             book = self.add_tab.get_book_object()
@@ -44,7 +46,7 @@ class Libro(MainView):
             )
             self.app_page.show_dialog(banner)
             return
-        
+
         assert book
         book.id = int(time.time() * 1000000)
 
@@ -115,3 +117,29 @@ class Libro(MainView):
 def main():
     LibroPaths.root().mkdir(exist_ok=True)
     Libro().run()
+
+
+if __package__ is not None:
+    import importlib.resources
+    import shutil
+
+    MODULE_PATH = importlib.resources.files(__package__)
+    RESOURCES_PATH = str(MODULE_PATH / "assets")
+
+    # If the LibroPaths.RESOURCES folder doesn't exist, We should copy all our default assets
+    def copy_if_absent(src: str, dst: str, *, follow_symlinks: bool = True):
+        if os.path.exists(dst):
+            if os.path.isdir(dst):
+                raise FileExistsError(f"directory exists with the same name as destination the file: {dst}")
+            return
+        shutil.copy2(src, dst, follow_symlinks=follow_symlinks)
+
+    def copy_default_resources():
+        os.makedirs(LibroPaths.assets(), exist_ok=True)
+        shutil.copytree(RESOURCES_PATH, LibroPaths.assets(), dirs_exist_ok=True, copy_function=copy_if_absent)
+
+    copy_default_resources()
+
+
+if __name__ == "__main__":
+    main()
