@@ -4,16 +4,16 @@ import flet as ft
 
 from libro.view.views import BookTile
 
-from ...model.todo import Todo
+from ...model.reading import ReadingInfo
 from ...model.book import Book
 
 
-TodoEventFn = Callable[[Todo, Book], Any]
+ReadingEventFn = Callable[[ReadingInfo, Book], Any]
 
 
-class TodoTab(ft.Container):
+class ReadingTab(ft.Container):
     def __init__(self, **container_kwargs):
-        self.on_todo_dismissed_fn: TodoEventFn | None = None
+        self.on_book_dismissed_fn: ReadingEventFn | None = None
 
         self.book_list_view = ft.ListView(expand=True, spacing=0, padding=0)
 
@@ -26,25 +26,25 @@ class TodoTab(ft.Container):
 
         super().__init__(content=self.main_column, **container_kwargs)
 
-    def update_todos(self, todos: list[Todo], books: list[Book]):
+    def update_reading_books(self, reading_info_list: list[ReadingInfo], books: list[Book]):
         self.book_list_view.controls = []
-        for todo in todos:
-            book = next(filter(lambda book: book.id == todo.id, books))
+        for reading_info in reading_info_list:
+            book = next(filter(lambda book: book.id == reading_info.book_id, books))
 
             self.book_list_view.controls.append(
-                self.todo_view(todo, book)
+                self.reading_view(reading_info, book)
             )
 
-    def register_on_todo_dismissed_fn(self, fn: TodoEventFn):
-        self.on_todo_dismissed_fn = fn
+    def register_on_book_dismissed_fn(self, fn: ReadingEventFn):
+        self.on_book_dismissed_fn = fn
 
-    def on_todo_dismissed(self, todo: Todo, book: Book):
-        return self.on_todo_dismissed_fn(todo, book) if self.on_todo_dismissed_fn else None
+    def on_book_dismissed(self, reading_info: ReadingInfo, book: Book):
+        return self.on_book_dismissed_fn(reading_info, book) if self.on_book_dismissed_fn else None
 
-    def todo_view(self, todo: Todo, book: Book):
+    def reading_view(self, reading_info: ReadingInfo, book: Book):
         def on_dismiss(e):
             self.book_list_view.controls.remove(dismissable)
-            self.on_todo_dismissed(todo, book)
+            self.on_book_dismissed(reading_info, book)
 
         dismissable = ft.Dismissible(
             dismiss_direction=ft.DismissDirection.HORIZONTAL,
@@ -65,7 +65,7 @@ class TodoTab(ft.Container):
                 ft.DismissDirection.END_TO_START: 0.2,
                 ft.DismissDirection.START_TO_END: 0.2,
             },
-            content=BookTile(book, timestamp=todo.time),
+            content=BookTile(book, timestamp=reading_info.since_timestamp),
         )
 
         return dismissable

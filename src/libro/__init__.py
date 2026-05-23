@@ -3,7 +3,7 @@ import time
 import flet as ft
 
 from .storage.paths import LibroPaths
-from .model.todo import Todo
+from .model.reading import ReadingInfo
 from .model.book import Book
 from .storage.json import JsonObjectStorage
 from .view.main import MainView
@@ -16,13 +16,13 @@ class Libro(MainView):
         self.app_page: ft.Page | None = None
 
         self.books_storage = JsonObjectStorage[Book].from_directory(item_cls=Book, directory=LibroPaths.books())
-        self.todo_storage = JsonObjectStorage[Todo].from_directory(item_cls=Todo, directory=LibroPaths.books() / "todo")
+        self.reading_storage = JsonObjectStorage[ReadingInfo].from_directory(item_cls=ReadingInfo, directory=LibroPaths.books() / "reading")
 
         self.lib_tab.update_books(self.books_storage.objects)
-        self.todo_tab.update_todos(self.todo_storage.objects, self.books_storage.objects)
+        self.reading_tab.update_reading_books(self.reading_storage.objects, self.books_storage.objects)
 
         self.add_tab.register_on_save_fn(self.on_save)
-        self.todo_tab.register_on_todo_dismissed_fn(self.on_todo_dismissed)
+        self.reading_tab.register_on_book_dismissed_fn(self.on_book_dismissed)
 
     def on_save(self, e):
         assert self.app_page
@@ -53,8 +53,8 @@ class Libro(MainView):
 
         self.add_tab.reset()
 
-        def add_to_todo_list(e):
-            self.add_new_todo(book)
+        def add_to_reading_list(e):
+            self.add_new_reading_book(book)
             self.app_page.pop_dialog()  # pyright: ignore[reportOptionalMemberAccess]
 
         banner = ft.AlertDialog(
@@ -66,8 +66,8 @@ class Libro(MainView):
                     on_click=lambda e: self.app_page.pop_dialog()  # pyright: ignore[reportOptionalMemberAccess]
                 ),
                 ft.TextButton(
-                    "Add To Todo List",
-                    on_click=add_to_todo_list
+                    "Add To Reading List",
+                    on_click=add_to_reading_list
                 )
             ],
             open=True,
@@ -78,23 +78,23 @@ class Libro(MainView):
 
         self.update()
 
-    def add_new_todo(self, book: Book):
+    def add_new_reading_book(self, book: Book):
         assert book.id
-        todo = Todo(id=book.id, time=time.time())
-        self.todo_storage.add(todo)
-        self.todo_storage.save()
+        reading_info = ReadingInfo(book_id=book.id, since_timestamp=time.time())
+        self.reading_storage.add(reading_info)
+        self.reading_storage.save()
 
-        self.todo_tab.update_todos(self.todo_storage.objects, self.books_storage.objects)
+        self.reading_tab.update_reading_books(self.reading_storage.objects, self.books_storage.objects)
 
         self.update()
 
-    def on_todo_dismissed(self, todo: Todo, book: Book):
-        print(todo, book)
+    def on_book_dismissed(self, reading_info: ReadingInfo, book: Book):
+        print(reading_info, book)
 
-        self.todo_storage.remove(todo)
-        self.todo_storage.save()
+        self.reading_storage.remove(reading_info)
+        self.reading_storage.save()
 
-        self.todo_tab.update_todos(self.todo_storage.objects, self.books_storage.objects)
+        self.reading_tab.update_reading_books(self.reading_storage.objects, self.books_storage.objects)
 
         self.update()
 
