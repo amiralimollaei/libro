@@ -1,4 +1,5 @@
 import hashlib
+import os
 from pathlib import Path
 from typing import Generic, Optional, Type, TypeVar
 
@@ -22,16 +23,21 @@ class JsonObjectStorage(Generic[T]):
 
     def remove(self, obj: T):
         self.objects.remove(obj)
+        json_data = obj.to_json().encode("utf-8")
+        hash = hashlib.sha256(json_data)
+        filename = self.directory / f"{hash.hexdigest()}.json"
+        os.remove(filename)
 
     def save(self):
         for obj in self.objects:
             json_data = obj.to_json().encode("utf-8")
             hash = hashlib.sha256(json_data)
             filename = self.directory / f"{hash.hexdigest()}.json"
-            open(filename, mode="wb").write(json_data)
+            if not filename.exists():
+                open(filename, mode="wb").write(json_data)
 
     @classmethod
-    def from_directory(cls, item_cls: Type[T], directory: Path) -> "JsonObjectStorage[T]":
+    def from_directory(cls, item_cls: Type[T], directory: Path) -> JsonObjectStorage[T]:
         objects: list[T] = []
 
         if not directory.exists():
