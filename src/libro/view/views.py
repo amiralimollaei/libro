@@ -11,12 +11,12 @@ from ..model.book import Book
 
 class BookTile(ft.ListTile):
     def __init__(self, book: Book, timestamp: float | None = None):
-        time_fmt = None
-        if timestamp:
-            time_fmt = datetime.fromtimestamp(timestamp).strftime("%d/%m/%Y, %H:%M:%S")
+        self.book = book
+
+        time_fmt = datetime.fromtimestamp(timestamp).strftime("%d/%m/%Y, %H:%M:%S") if timestamp else None
 
         leading = None
-        if book.cover and (book_cover_path:=LibroPaths.covers() / book.cover).exists():
+        if book.cover and (book_cover_path := LibroPaths.covers() / book.cover).exists():
             leading = ft.Image(str(book_cover_path.absolute()))
 
         super().__init__(

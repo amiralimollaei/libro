@@ -33,6 +33,17 @@ class Libro(MainView):
         self.lib_tab.update_books(self.books_storage.objects)
         self.reading_tab.update_reading_books(self.reading_storage.objects, self.books_storage.objects)
 
+        def search_predicate(book: Book, query: str) -> bool:
+            matches = False
+            matches |= query.lower() in book.title.lower()
+            matches |= query.lower() in book.author.full_name().lower()
+            matches |= query.lower() in (book.summary or "").lower()
+            matches |= query.lower() in (book.cover or "").lower()
+
+            return matches
+
+        self.lib_tab.register_search_predicate(search_predicate)
+
         self.add_tab.register_on_save_fn(self.on_save)
         self.reading_tab.register_on_book_dismissed_fn(self.on_book_dismissed)
 
