@@ -23,12 +23,12 @@ class MainView(ft.Tabs):
                 ft.Container(
                     alignment=ft.Alignment.CENTER,
                     content=self.lib_tab,
-                    padding=ft.Padding.symmetric(horizontal=10)
+                    padding=ft.Padding(left=20, right=20, top=20, bottom=0)
                 ),
                 ft.Container(
                     alignment=ft.Alignment.CENTER,
                     content=self.reading_tab,
-                    padding=ft.Padding.symmetric(horizontal=10)
+                    padding=ft.Padding.symmetric(horizontal=20)
                 ),
                 ft.Container(
                     alignment=ft.Alignment.CENTER,
