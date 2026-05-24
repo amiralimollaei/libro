@@ -3,11 +3,11 @@ import time
 
 import flet as ft
 
-from .model.statistics import Statistics
 from .storage.paths import LibroPaths
+from .model.statistics import Statistics
 from .model.reading import ReadingInfo
 from .model.book import Book
-from .storage.json import JsonDirectoryStorage
+from .storage.json import JsonDirectoryStorage, JsonFileStorage
 from .view.main import MainView
 
 
@@ -18,16 +18,16 @@ class Libro(MainView):
         self.app_page: ft.Page | None = None
 
         self.books_storage = JsonDirectoryStorage[Book].from_directory(
-            item_cls=Book, 
+            item_cls=Book,
             directory=LibroPaths.books()
         )
         self.reading_storage = JsonDirectoryStorage[ReadingInfo].from_directory(
-            item_cls=ReadingInfo, 
+            item_cls=ReadingInfo,
             directory=LibroPaths.reading()
         )
-        self.statistics_storage = JsonDirectoryStorage[Statistics].from_directory(
-            item_cls=Statistics, 
-            directory=LibroPaths.statistics()
+        self.statistics_storage = JsonFileStorage[Statistics].from_directory(
+            item_cls=Statistics,
+            path=LibroPaths.statistics()
         )
 
         self.lib_tab.update_books(self.books_storage.objects)

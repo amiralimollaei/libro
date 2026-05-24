@@ -60,6 +60,9 @@ class JsonFileStorage(Generic[T]):
 
         self.object: Optional[T] = object
 
+    def get(self) -> Optional[T]:
+        return self.object
+    
     def update(self, obj: T):
         self.object = obj
 
