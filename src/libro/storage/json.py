@@ -54,7 +54,7 @@ class JsonDirectoryStorage(Generic[T]):
 class JsonFileStorage(Generic[T]):
     def __init__(self, path: Path, object: Optional[T] = None) -> None:
         super().__init__()
-        path.mkdir(exist_ok=True)
+        path.parent.mkdir(exist_ok=True)
 
         self.path = path
 
