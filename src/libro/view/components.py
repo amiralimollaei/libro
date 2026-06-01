@@ -46,6 +46,36 @@ class BookRow(ft.Row):
                 src=str(cover_src)
             )
         )
+        
+        self.page_text = ft.Text(f"{self.current_page}/{self.total_pages}")
+
+        self.page_counter_inputs = ft.Row(
+            [
+                ft.IconButton(
+                    ft.Icons.REMOVE,
+                    icon_size=18,
+                    on_click=self._decrement_page,
+                ),
+                self.page_text,
+                ft.IconButton(
+                    ft.Icons.ADD,
+                    icon_size=18,
+                    on_click=self._increment_page,
+                ),
+            ]
+        )
+
+        self.progress_text = ft.Text(
+            f"{self.progress * 100:.0f}%",
+            size=12,
+            color=ft.Colors.OUTLINE,
+        )
+        self.progress_bar = ft.ProgressBar(
+            value=self.progress,
+            height=8,
+            border_radius=4,
+            expand=True
+        )
 
         self.controls = [
             ft.Container(
@@ -83,25 +113,15 @@ class BookRow(ft.Row):
                                 ft.Column(
                                     horizontal_alignment=ft.CrossAxisAlignment.END,
                                     controls=[
-                                        ft.Text(
-                                            f"{self.current_page}/{self.total_pages}",
-                                            size=14,
-                                            weight=ft.FontWeight.W_500,
-                                        ),
-                                        ft.Text(
-                                            f"{self.progress * 100:.0f}%",
-                                            size=12,
-                                            color=ft.Colors.OUTLINE,
-                                        ),
+                                        self.page_counter_inputs,
                                     ],
                                 ),
                             ],
                         ),
-                        ft.ProgressBar(
-                            value=self.progress,
-                            height=8,
-                            border_radius=4,
-                        ),
+                        ft.Row([
+                            self.progress_text,
+                            self.progress_bar,
+                        ], expand=True),
                     ],
                 ),
             )
@@ -123,6 +143,31 @@ class BookRow(ft.Row):
         #     # on_dismiss=...
         # )
 
+    def _increment_page(self, e):
+        if self.current_page < self.total_pages:
+            self.current_page += 1
+            self.book.current_page = self.current_page
+            self._refresh_progress()
+
+    def _decrement_page(self, e):
+        if self.current_page > 0:
+            self.current_page -= 1
+            self.book.current_page = self.current_page
+            self._refresh_progress()
+
+    def _refresh_progress(self):
+        self.progress = (
+            self.current_page / self.total_pages
+            if self.total_pages > 0
+            else 0
+        )
+
+        self.page_text.value = f"{self.current_page}/{self.total_pages}"
+        self.progress_text.value = f"{self.progress * 100:.0f}%"
+        self.progress_bar.value = self.progress
+        # self.on_book_changed()
+
+        self.update()
 
 class AdvancedSearchFiltersColumn(ft.Column):
     def __init__(self, on_filters_change: Callable):
