@@ -2,7 +2,7 @@ from typing import Callable, Optional
 
 import flet as ft
 
-from ..components import BookTile, AdvancedSearchFiltersRow
+from ..components import BookRow, AdvancedSearchFiltersColumn
 from ...callbacks import CallbackMixin, CallbackContext
 from ...storage.json import JsonDirectoryStorage, OnObjectsChangedCtx
 from ...model.book import Book, BookFilter
@@ -32,16 +32,29 @@ class LibraryTab(ft.Container, CallbackMixin):
             on_click=self._on_toggle
         )
 
-        self.advanced_search = AdvancedSearchFiltersRow(on_filters_change=self.on_search_change)
+        self.advanced_search = AdvancedSearchFiltersColumn(on_filters_change=self.on_search_change)
 
-        self.main_column = ft.Column(
+        self.advanced_search_container = ft.Container(
+            content=self.advanced_search,
+            width=0,
+            animate=ft.Animation(250, ft.AnimationCurve.EASE_IN_OUT),
+            clip_behavior=ft.ClipBehavior.HARD_EDGE,
+        )
+
+        self.main_column = ft.Row(
             [
-                ft.Row([self.search_input, self.toggle_button]),
-                self.advanced_search,
-                self.book_list_view,
+                ft.Column(
+                    [
+                        ft.Row([self.search_input, self.toggle_button]),
+                        self.book_list_view,
+                    ],
+                    alignment=ft.MainAxisAlignment.START,
+                    scroll=ft.ScrollMode.AUTO,
+                    expand=True,
+                ),
+                self.advanced_search_container
             ],
-            alignment=ft.MainAxisAlignment.START,
-            expand=True
+            vertical_alignment=ft.CrossAxisAlignment.START
         )
 
         super().__init__(content=self.main_column, **container_kwargs)
@@ -56,10 +69,19 @@ class LibraryTab(ft.Container, CallbackMixin):
     def on_books_changed(self, ctx: OnObjectsChangedCtx[Book]):
         self.update_books(ctx.objects)
 
-    def _on_toggle(self, e: ft.Event):
+    def _on_toggle(self, e):
         self.is_advanced_search = not self.is_advanced_search
-        self.advanced_search.visible = self.is_advanced_search
-        self.toggle_button.icon = ft.Icons.UNFOLD_LESS if self.is_advanced_search else ft.Icons.TUNE
+
+        self.advanced_search_container.width = (
+            320 if self.is_advanced_search else 0
+        )
+
+        self.toggle_button.icon = (
+            ft.Icons.UNFOLD_LESS
+            if self.is_advanced_search
+            else ft.Icons.TUNE
+        )
+
         self.update()
 
     def get_book_filter(self) -> BookFilter:
@@ -105,5 +127,5 @@ class LibraryTab(ft.Container, CallbackMixin):
         self.book_list_view.controls = []
         for book in self.books:
             self.book_list_view.controls.append(
-                BookTile(book)
+                BookRow(book)
             )

@@ -36,6 +36,7 @@ class Book(DataClassJsonMixin):
     summary: Optional[str] = None
     cover: Optional[str] = None
     id: int | None = None
+    current_page: int | None = None
 
 
 @dataclasses.dataclass(frozen=True)

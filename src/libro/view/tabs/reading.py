@@ -2,7 +2,7 @@ from typing import Any, Callable
 
 import flet as ft
 
-from libro.view.components import BookTile
+from libro.view.components import BookRow
 
 from ...model.reading import ReadingInfo
 from ...model.book import Book
@@ -65,7 +65,7 @@ class ReadingTab(ft.Container):
                 ft.DismissDirection.END_TO_START: 0.2,
                 ft.DismissDirection.START_TO_END: 0.2,
             },
-            content=BookTile(book, timestamp=reading_info.since_timestamp),
+            content=BookRow(book),
         )
 
         return dismissable
