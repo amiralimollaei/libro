@@ -57,7 +57,7 @@ class JsonDirectoryStorage(Generic[T], CallbackMixin):
 
     def register_remove_callback(self, fn: Callable[[OnObjectRemoveCtx[T]], None]):
         self.register_callback(OnObjectRemoveCtx.id, fn=fn)
-    
+
     def register_change_callback(self, fn: Callable[[OnObjectsChangedCtx[T]], None]):
         self.register_callback(OnObjectsChangedCtx.id, fn=fn)
 

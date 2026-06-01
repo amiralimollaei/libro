@@ -1,15 +1,13 @@
-import dataclasses
 from datetime import datetime
 from typing import Callable, Optional
 
 import flet as ft
 
-from libro.storage.paths import LibroPaths
-
+from ..storage.paths import LibroPaths
 from ..model.book import Book, Genre
 
-# views shared by most tabs
 
+# views shared by most tabs
 
 class BookTile(ft.ListTile):
     def __init__(self, book: Book, timestamp: float | None = None):
@@ -104,17 +102,17 @@ class AdvancedSearchFiltersRow(ft.Row):
     def year_min(self) -> Optional[int]:
         if v := self.year_min_input.value:
             return int(v)
-    
+
     @property
     def year_max(self) -> Optional[int]:
         if v := self.year_max_input.value:
             return int(v)
-    
+
     @property
     def pages_min(self) -> Optional[int]:
         if v := self.pages_min_input.value:
             return int(v)
-    
+
     @property
     def pages_max(self) -> Optional[int]:
         if v := self.pages_max_input.value:

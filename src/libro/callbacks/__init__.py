@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Any
 
+
 class CallbackContext:
     """
     Base class for all CallbackContexts.

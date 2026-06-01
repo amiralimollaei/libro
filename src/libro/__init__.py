@@ -7,7 +7,7 @@ from .search.engine import BookSearchEngine
 from .storage.paths import LibroPaths
 from .model.statistics import Statistics
 from .model.reading import ReadingInfo
-from .model.book import Book, BookFilter
+from .model.book import Book
 from .storage.json import JsonDirectoryStorage, JsonFileStorage
 from .view.main import MainView
 
@@ -131,14 +131,15 @@ class Libro(MainView):
         self.update()
 
     def app(self, page: ft.Page):
-        self.app_page = page
-        self.app_page.window.min_width = 1080
-        self.app_page.window.min_height = 540
+        page.window.min_width = 1080
+        page.window.min_height = 540
 
-        self.app_page.title = "Libro - Your Personal Library"
-        self.app_page.vertical_alignment = ft.MainAxisAlignment.CENTER
-        self.app_page.padding = ft.Padding.zero()
-        self.app_page.add(self)
+        page.title = "Libro - Your Personal Library"
+        page.vertical_alignment = ft.MainAxisAlignment.CENTER
+        page.padding = ft.Padding.zero()
+        page.add(self)
+
+        self.app_page = page
 
     def run(self):
         ft.run(self.app, assets_dir=str(LibroPaths.assets().absolute()))

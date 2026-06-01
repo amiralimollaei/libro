@@ -1,5 +1,3 @@
-import dataclasses
-
 from whoosh.index import create_in
 from whoosh.qparser import QueryParser
 from whoosh.query import Or
@@ -36,10 +34,10 @@ class BookSearchEngine:
             )
 
         writer.commit()
-    
+
     def remove_book(self, book: Book):
         self.remove_books([book])
-    
+
     def remove_books(self, books: list[Book]):
         writer = self.index.writer()
 
@@ -50,7 +48,7 @@ class BookSearchEngine:
 
     def search(self, filters: BookFilter) -> list[int]:
         print(filters.query)
-        
+
         match_any = []
         if filters.include_title:
             match_any.append(QueryParser("title", self.book_schema).parse(filters.query))
