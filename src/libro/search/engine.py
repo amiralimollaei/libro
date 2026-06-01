@@ -47,8 +47,6 @@ class BookSearchEngine:
         writer.commit()
 
     def search(self, filters: BookFilter) -> list[int]:
-        print(filters.query)
-
         match_any = []
         if filters.include_title:
             match_any.append(QueryParser("title", self.book_schema).parse(filters.query))

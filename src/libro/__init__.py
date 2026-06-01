@@ -25,6 +25,7 @@ class Libro(MainView):
         )
         self.book_search_engine.add_books(self.books_storage.objects)
         self.lib_tab.register_book_storage(self.books_storage)
+        self.lib_tab.register_search_engine(self.book_search_engine)
 
         self.reading_storage = JsonDirectoryStorage[ReadingInfo].from_directory(
             item_cls=ReadingInfo,
@@ -38,26 +39,9 @@ class Libro(MainView):
         self.lib_tab.update_books(self.books_storage.objects)
         self.reading_tab.update_reading_books(self.reading_storage.objects, self.books_storage.objects)
 
-        self.lib_tab.register_on_search_change_fn(self.on_search_change)
-
         self.add_tab.register_on_add_book_fn(self.on_add_book)
         self.reading_tab.register_on_book_dismissed_fn(self.on_book_dismissed)
 
-    def on_search_change(self):
-        match_ids = self.book_search_engine.search(self.lib_tab.get_book_filter())
-        if match_ids:
-            matched_books = []
-            for book in self.books_storage.objects:
-                if book.id in match_ids:
-                    matched_books.append(book)
-        else:
-            matched_books = self.books_storage.objects
-        if match_ids:
-            self.lib_tab.search_input.error = None
-        else:
-            self.lib_tab.search_input.error = "Not Found"
-
-        self.lib_tab.update_books(matched_books)
 
     def on_add_book(self, e):
         assert self.app_page
@@ -121,8 +105,6 @@ class Libro(MainView):
         self.update()
 
     def on_book_dismissed(self, reading_info: ReadingInfo, book: Book):
-        print(reading_info, book)
-
         self.reading_storage.remove(reading_info)
         self.reading_storage.save()
 
