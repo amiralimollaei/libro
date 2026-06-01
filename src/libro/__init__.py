@@ -3,10 +3,11 @@ import time
 
 import flet as ft
 
+from .search.engine import BookSearchEngine
 from .storage.paths import LibroPaths
 from .model.statistics import Statistics
 from .model.reading import ReadingInfo
-from .model.book import Book
+from .model.book import Book, BookFilter
 from .storage.json import JsonDirectoryStorage, JsonFileStorage
 from .view.main import MainView
 
@@ -16,11 +17,16 @@ class Libro(MainView):
         super().__init__()
 
         self.app_page: ft.Page | None = None
+        self.book_search_engine = BookSearchEngine()
 
         self.books_storage = JsonDirectoryStorage[Book].from_directory(
             item_cls=Book,
             directory=LibroPaths.books()
         )
+        self.books_storage.register_add_callback(self.book_search_engine.add_book)
+        self.books_storage.register_remove_callback(self.book_search_engine.remove_book)
+        self.book_search_engine.add_books(self.books_storage.objects)
+
         self.reading_storage = JsonDirectoryStorage[ReadingInfo].from_directory(
             item_cls=ReadingInfo,
             directory=LibroPaths.reading()
@@ -33,21 +39,28 @@ class Libro(MainView):
         self.lib_tab.update_books(self.books_storage.objects)
         self.reading_tab.update_reading_books(self.reading_storage.objects, self.books_storage.objects)
 
-        def search_predicate(book: Book, query: str) -> bool:
-            matches = False
-            matches |= query.lower() in book.title.lower()
-            matches |= query.lower() in book.author.full_name().lower()
-            matches |= query.lower() in (book.summary or "").lower()
-            matches |= query.lower() in (book.cover or "").lower()
+        self.lib_tab.register_on_search_change_fn(self.on_search_change)
 
-            return matches
-
-        self.lib_tab.register_search_predicate(search_predicate)
-
-        self.add_tab.register_on_save_fn(self.on_save)
+        self.add_tab.register_on_add_book_fn(self.on_add_book)
         self.reading_tab.register_on_book_dismissed_fn(self.on_book_dismissed)
 
-    def on_save(self, e):
+    def on_search_change(self):
+        match_ids = self.book_search_engine.search(self.lib_tab.get_book_filter())
+        if match_ids:
+            matched_books = []
+            for book in self.books_storage.objects:
+                if book.id in match_ids:
+                    matched_books.append(book)
+        else:
+            matched_books = self.books_storage.objects
+        if match_ids:
+            self.lib_tab.search_input.error = None
+        else:
+            self.lib_tab.search_input.error = "Not Found"
+
+        self.lib_tab.update_books(matched_books)
+
+    def on_add_book(self, e):
         assert self.app_page
 
         book = None

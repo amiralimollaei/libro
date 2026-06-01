@@ -1,7 +1,7 @@
 import hashlib
 import os
 from pathlib import Path
-from typing import Generic, Optional, Type, TypeVar
+from typing import Any, Callable, Generic, Optional, Type, TypeVar
 
 from dataclasses_json.api import DataClassJsonMixin
 
@@ -18,6 +18,15 @@ class JsonDirectoryStorage(Generic[T]):
 
         self.objects: list[T] = objects or []
 
+        self.on_add_callback_fn: Optional[Callable[[T], Any]] = None
+        self.on_remove_callback_fn: Optional[Callable[[T], Any]] = None
+
+    def register_add_callback(self, fn: Callable[[T], Any]):
+        self.on_add_callback_fn = fn
+    
+    def register_remove_callback(self, fn: Callable[[T], Any]):
+        self.on_remove_callback_fn = fn
+    
     def add(self, obj: T):
         self.objects.append(obj)
 
@@ -62,7 +71,7 @@ class JsonFileStorage(Generic[T]):
 
     def get(self) -> Optional[T]:
         return self.object
-    
+
     def update(self, obj: T):
         self.object = obj
 

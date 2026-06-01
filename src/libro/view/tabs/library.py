@@ -2,24 +2,30 @@ from typing import Callable, Optional
 
 import flet as ft
 
-from ..views import BookTile
-
-from ...model.book import Book
-
-SearchPredicateFn = Callable[[Book, str], bool]
-
+from ..components import BookTile, AdvancedSearchFiltersRow
+from ...model.book import Book, BookFilter
 
 class LibraryTab(ft.Container):
     def __init__(self, **container_kwargs):
-        self.search_predicate_fn: Optional[SearchPredicateFn] = None
+        self.on_search_change_fn: Optional[Callable] = None
         self.books: list[Book] = []
 
         self.book_list_view = ft.ListView(expand=True, spacing=10)
         self.search_input = ft.TextField(label="Search Your Library", on_change=self.on_search_change, expand=True)
 
+        self.is_advanced_search = False
+        self.toggle_button = ft.IconButton(
+            icon=ft.Icons.TUNE,
+            tooltip="Advanced Filters",
+            on_click=self._on_toggle
+        )
+
+        self.advanced_search = AdvancedSearchFiltersRow(on_filters_change=self.on_search_change)
+
         self.main_column = ft.Column(
             [
-                ft.Row([self.search_input]),
+                ft.Row([self.search_input, self.toggle_button]),
+                self.advanced_search,
                 self.book_list_view,
             ],
             alignment=ft.MainAxisAlignment.START,
@@ -28,21 +34,34 @@ class LibraryTab(ft.Container):
 
         super().__init__(content=self.main_column, **container_kwargs)
 
-    def on_search_change(self, e):
-        self.book_list_view.controls = []
-        for book in self.books:
-            if self.search_input.value and not self.search_predicate(book, self.search_input.value):
-                continue
+    def _on_toggle(self, e):
+        self.is_advanced_search = not self.is_advanced_search
+        self.advanced_search.visible = self.is_advanced_search
+        self.toggle_button.icon = ft.Icons.UNFOLD_LESS if self.is_advanced_search else ft.Icons.TUNE
+        self.update()
 
-            self.book_list_view.controls.append(
-                BookTile(book)
-            )
+    def get_book_filter(self) -> BookFilter:
+        return BookFilter(
+            query=self.search_input.value,
+            year_min=self.advanced_search.year_min,
+            year_max=self.advanced_search.year_max,
+            pages_min=self.advanced_search.pages_min,
+            pages_max=self.advanced_search.pages_max,
+            genre=self.advanced_search.genre_dropdown.value,
+            # TODO: add the missing filters to the GUI
+            include_title = True,
+            include_author = True,
+            include_summary = True
+        )
+    
+    def register_on_search_change_fn(self, on_search_change_fn: Callable):
+        self.on_search_change_fn = on_search_change_fn
+    
+    def on_search_change(self, e=None):
+        if self.on_search_change_fn:
+            self.on_search_change_fn()
 
-    def search_predicate(self, book: Book, query: str) -> bool:
-        return self.search_predicate_fn(book, query) if self.search_predicate_fn else True
-
-    def register_search_predicate(self, fn: SearchPredicateFn):
-        self.search_predicate_fn = fn
+            self.update()
 
     def update_books(self, books: list[Book]):
         self.books = books

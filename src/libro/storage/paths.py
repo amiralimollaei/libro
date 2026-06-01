@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 from typing import Sequence
 
@@ -20,7 +19,7 @@ class LibroPaths:
     def books(cls) -> Path:
         """Contains data for every books in our library"""
         return cls.root() / "books"
-    
+
     @classmethod
     def reading(cls) -> Path:
         """Contains data related to the reading tab"""
@@ -35,6 +34,11 @@ class LibroPaths:
     def assets(cls) -> Path:
         """Contains Libro internal assets"""
         return cls.root() / "assets"
+
+    @classmethod
+    def book_index(cls) -> Path:
+        """Contains Libro internal index for the book search engine"""
+        return cls.books() / "index"
 
     @classmethod
     def statistics(cls) -> Path:

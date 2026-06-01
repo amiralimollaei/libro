@@ -163,7 +163,7 @@ class AddTab(ft.Container):
         self.update()
         return self.on_save(e) if self.on_save else None
 
-    def register_on_save_fn(self, fn: Callable):
+    def register_on_add_book_fn(self, fn: Callable):
         self.on_save = fn
 
     def get_book_object(self):

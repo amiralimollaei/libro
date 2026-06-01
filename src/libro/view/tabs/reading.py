@@ -2,7 +2,7 @@ from typing import Any, Callable
 
 import flet as ft
 
-from libro.view.views import BookTile
+from libro.view.components import BookTile
 
 from ...model.reading import ReadingInfo
 from ...model.book import Book
