@@ -25,9 +25,15 @@ class BookSearchEngine:
         writer = self.index.writer()
 
         for book in books:
-            book_fields = dataclasses.asdict(book)
-            book_fields["author"] = book.author.full_name()
-            writer.add_document(**book_fields)
+            writer.add_document(
+                title=book.title,
+                author=book.author.full_name(),
+                genre=book.genre,
+                pages=book.pages,
+                publish_year=book.publish_year,
+                summary=book.summary,
+                id=book.id,
+            )
 
         writer.commit()
     

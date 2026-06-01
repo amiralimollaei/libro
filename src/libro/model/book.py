@@ -51,7 +51,6 @@ class Book(DataClassJsonMixin):
             pages=NUMERIC(stored=True),
             publish_year=NUMERIC(stored=True),
             summary=TEXT(stored=store_summary),
-            cover=ID(stored=True),
             id=NUMERIC(stored=True, bits = 64),
         )
 

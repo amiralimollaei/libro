@@ -5,37 +5,77 @@ from typing import Any, Callable, Generic, Optional, Type, TypeVar
 
 from dataclasses_json.api import DataClassJsonMixin
 
+from ..callbacks import CallbackMixin, CallbackContext
+
 
 T = TypeVar("T", bound="DataClassJsonMixin")
 
 
-class JsonDirectoryStorage(Generic[T]):
-    def __init__(self, directory: Path, objects: Optional[list[T]] = None) -> None:
+class OnObjectAddCtx(Generic[T], CallbackContext):
+    id = "on_object_add"
+
+    def __init__(self, obj: T):
         super().__init__()
+
+        self.obj: T = obj
+
+
+class OnObjectRemoveCtx(Generic[T], CallbackContext):
+    id = "on_object_remove"
+
+    def __init__(self, obj: T):
+        super().__init__()
+
+        self.obj: T = obj
+
+
+class OnObjectsChangedCtx(Generic[T], CallbackContext):
+    id = "on_objects_changed"
+
+    def __init__(self, objects: list[T]):
+        super().__init__()
+
+        self.objects: list[T] = objects
+
+
+class JsonDirectoryStorage(Generic[T], CallbackMixin):
+    def __init__(self, directory: Path, objects: Optional[list[T]] = None) -> None:
         directory.mkdir(exist_ok=True)
 
         self.directory = directory
 
         self.objects: list[T] = objects or []
 
-        self.on_add_callback_fn: Optional[Callable[[T], Any]] = None
-        self.on_remove_callback_fn: Optional[Callable[[T], Any]] = None
+        self.__init_callbacks__([
+            OnObjectAddCtx.id,
+            OnObjectRemoveCtx.id,
+            OnObjectsChangedCtx.id
+        ])
 
-    def register_add_callback(self, fn: Callable[[T], Any]):
-        self.on_add_callback_fn = fn
+    def register_add_callback(self, fn: Callable[[OnObjectAddCtx[T]], None]):
+        self.register_callback(OnObjectAddCtx.id, fn=fn)
+
+    def register_remove_callback(self, fn: Callable[[OnObjectRemoveCtx[T]], None]):
+        self.register_callback(OnObjectRemoveCtx.id, fn=fn)
     
-    def register_remove_callback(self, fn: Callable[[T], Any]):
-        self.on_remove_callback_fn = fn
-    
+    def register_change_callback(self, fn: Callable[[OnObjectsChangedCtx[T]], None]):
+        self.register_callback(OnObjectsChangedCtx.id, fn=fn)
+
     def add(self, obj: T):
-        self.objects.append(obj)
+        ctx = self._run_callbacks(OnObjectAddCtx[T](obj))
+        if not ctx.is_cancelled:
+            self.objects.append(obj)
+            self._run_callbacks(OnObjectsChangedCtx[T](self.objects))
 
     def remove(self, obj: T):
-        self.objects.remove(obj)
-        json_data = obj.to_json().encode("utf-8")
-        hash = hashlib.sha256(json_data)
-        filename = self.directory / f"{hash.hexdigest()}.json"
-        os.remove(filename)
+        ctx = self._run_callbacks(OnObjectRemoveCtx[T](obj))
+        if not ctx.is_cancelled:
+            self.objects.remove(obj)
+            json_data = obj.to_json().encode("utf-8")
+            hash = hashlib.sha256(json_data)
+            filename = self.directory / f"{hash.hexdigest()}.json"
+            os.remove(filename)
+            self._run_callbacks(OnObjectsChangedCtx[T](self.objects))
 
     def save(self):
         for obj in self.objects:
@@ -62,7 +102,6 @@ class JsonDirectoryStorage(Generic[T]):
 
 class JsonFileStorage(Generic[T]):
     def __init__(self, path: Path, object: Optional[T] = None) -> None:
-        super().__init__()
         path.parent.mkdir(exist_ok=True)
 
         self.path = path

@@ -4,14 +4,28 @@ from typing import Callable
 
 import flet as ft
 
-from libro.storage.paths import LibroPaths
-
+from ...callbacks import CallbackMixin, CallbackContext
+from ...storage.paths import LibroPaths
 from ...model.book import Genre, Author, Book
 
 
-class AddTab(ft.Container):
+class OnAddBookCtx(CallbackContext):
+    id = "on_add_book"
+
+    def __init__(self, event: ft.Event):
+        super().__init__()
+        self.event = event
+
+    def get_event(self):
+        return self.event
+
+
+class AddTab(ft.Container, CallbackMixin):
     def __init__(self, **container_kwargs):
-        self.on_save: Callable | None = None
+        # initialize our callbacks for the CallbackMixin
+        self.__init_callbacks__([
+            "on_add_book",
+        ])
 
         self.title_input = ft.TextField(
             label="Book Title",
@@ -161,10 +175,14 @@ class AddTab(ft.Container):
         if not self.publish_year_input.value:
             self.publish_year_input.border_color = ft.Colors.ERROR
         self.update()
-        return self.on_save(e) if self.on_save else None
+
+        ctx = self._run_callbacks(OnAddBookCtx(event=e))
+
+        return ctx.result
 
     def register_on_add_book_fn(self, fn: Callable):
-        self.on_save = fn
+        """alias for `self.register_callback("on_add_book", fn)`"""
+        self.register_callback("on_add_book", fn)
 
     def get_book_object(self):
         return Book(

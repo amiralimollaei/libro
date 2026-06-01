@@ -23,9 +23,8 @@ class Libro(MainView):
             item_cls=Book,
             directory=LibroPaths.books()
         )
-        self.books_storage.register_add_callback(self.book_search_engine.add_book)
-        self.books_storage.register_remove_callback(self.book_search_engine.remove_book)
         self.book_search_engine.add_books(self.books_storage.objects)
+        self.lib_tab.register_book_storage(self.books_storage)
 
         self.reading_storage = JsonDirectoryStorage[ReadingInfo].from_directory(
             item_cls=ReadingInfo,
@@ -93,7 +92,7 @@ class Libro(MainView):
             self.add_new_reading_book(book)
             self.app_page.pop_dialog()  # pyright: ignore[reportOptionalMemberAccess]
 
-        banner = ft.AlertDialog(
+        self.app_page.show_dialog(dialog=ft.AlertDialog(
             title=ft.Text("Add Book"),
             content=ft.Text("Book was successfully added to your library."),
             actions=[
@@ -107,10 +106,7 @@ class Libro(MainView):
                 )
             ],
             open=True,
-        )
-        self.app_page.show_dialog(banner)
-
-        self.lib_tab.update_books(self.books_storage.objects)
+        ))
 
         self.update()
 
