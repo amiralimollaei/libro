@@ -1,65 +1,29 @@
-from whoosh.index import create_in
-from whoosh.qparser import QueryParser
-from whoosh.query import Or
-
 from ..model.book import Book, BookFilter
-from ..storage.paths import LibroPaths
+from ..storage.json import JsonDirectoryStorage
 
 
 class BookSearchEngine:
-    def __init__(self):
-        self.index_path = LibroPaths.book_index()
-        self.index_path.mkdir(exist_ok=True)
-
-        self.book_schema = Book.get_whoosh_schema()
-
-        # create the index
-        self.index = create_in(self.index_path, self.book_schema)
-
-    def add_book(self, book: Book):
-        self.add_books([book])
-
-    def add_books(self, books: list[Book]):
-        writer = self.index.writer()
-
-        for book in books:
-            writer.add_document(
-                title=book.title,
-                author=book.author.full_name(),
-                genre=book.genre,
-                pages=book.pages,
-                publish_year=book.publish_year,
-                summary=book.summary,
-                id=book.id,
-            )
-
-        writer.commit()
-
-    def remove_book(self, book: Book):
-        self.remove_books([book])
-
-    def remove_books(self, books: list[Book]):
-        writer = self.index.writer()
-
-        for book in books:
-            writer.delete_by_term("id", book.id)
-
-        writer.commit()
+    def __init__(self, storage: JsonDirectoryStorage[Book]):
+        self.storage = storage
 
     def search(self, filters: BookFilter) -> list[int]:
-        match_any = []
-        if filters.include_title:
-            match_any.append(QueryParser("title", self.book_schema).parse(filters.query))
-        if filters.include_author:
-            match_any.append(QueryParser("author", self.book_schema).parse(filters.query))
-        if filters.include_summary:
-            match_any.append(QueryParser("summary", self.book_schema).parse(filters.query))
-
-        whoosh_query = Or(match_any)
         match_ids = []
-        with self.index.searcher() as s:
-            results = s.search(whoosh_query)
-            for result in results:
-                match_ids.append(result.get("id"))
+        for book in self.storage.objects:
+            if filters.year_min and filters.year_min > book.publish_year:
+                continue
+            if filters.year_max and filters.year_max < book.publish_year:
+                continue
+            
+            if filters.pages_min and filters.pages_min > book.pages:
+                continue
+            if filters.pages_max and filters.pages_max < book.pages:
+                continue
+            
+            if filters.include_title and filters.query.lower() in book.title.lower():
+                match_ids.append(book.id)
+            elif filters.include_author and filters.query.lower() in book.author.full_name().lower():
+                match_ids.append(book.id)
+            elif filters.include_summary and book.summary is not None and filters.query.lower() in book.summary.lower():
+                match_ids.append(book.id)
 
         return match_ids

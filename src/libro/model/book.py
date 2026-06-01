@@ -4,7 +4,6 @@ from typing import Optional
 
 import dataclasses_json
 from dataclasses_json.api import DataClassJsonMixin
-from whoosh.fields import Schema, TEXT, NUMERIC, ID
 
 
 @dataclasses_json.dataclass_json(letter_case=dataclasses_json.LetterCase.CAMEL)  # pyright: ignore[reportArgumentType]
@@ -37,22 +36,6 @@ class Book(DataClassJsonMixin):
     summary: Optional[str] = None
     cover: Optional[str] = None
     id: int | None = None
-
-    @staticmethod
-    def get_whoosh_schema(store_summary: bool = False) -> Schema:
-        """
-        returns the whoosh schema for this model, the schema has the same fileds as the dataclass.
-        """
-
-        return Schema(
-            title=TEXT(stored=True),
-            author=TEXT(stored=True),
-            genre=TEXT(stored=True),
-            pages=NUMERIC(stored=True),
-            publish_year=NUMERIC(stored=True),
-            summary=TEXT(stored=store_summary),
-            id=NUMERIC(stored=True, bits=64),
-        )
 
 
 @dataclasses.dataclass(frozen=True)

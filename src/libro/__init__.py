@@ -17,15 +17,11 @@ class Libro(MainView):
         super().__init__()
 
         self.app_page: ft.Page | None = None
-        self.book_search_engine = BookSearchEngine()
 
         self.books_storage = JsonDirectoryStorage[Book].from_directory(
             item_cls=Book,
             directory=LibroPaths.books()
         )
-        self.book_search_engine.add_books(self.books_storage.objects)
-        self.lib_tab.register_book_storage(self.books_storage)
-        self.lib_tab.register_search_engine(self.book_search_engine)
 
         self.reading_storage = JsonDirectoryStorage[ReadingInfo].from_directory(
             item_cls=ReadingInfo,
@@ -36,12 +32,16 @@ class Libro(MainView):
             path=LibroPaths.statistics()
         )
 
+        self.book_search_engine = BookSearchEngine(self.books_storage)
+
+        self.lib_tab.register_book_storage(self.books_storage)
+        self.lib_tab.register_search_engine(self.book_search_engine)
         self.lib_tab.update_books(self.books_storage.objects)
-        self.reading_tab.update_reading_books(self.reading_storage.objects, self.books_storage.objects)
 
         self.add_tab.register_on_add_book_fn(self.on_add_book)
-        self.reading_tab.register_on_book_dismissed_fn(self.on_book_dismissed)
 
+        self.reading_tab.update_reading_books(self.reading_storage.objects, self.books_storage.objects)
+        self.reading_tab.register_on_book_dismissed_fn(self.on_book_dismissed)
 
     def on_add_book(self, e):
         assert self.app_page

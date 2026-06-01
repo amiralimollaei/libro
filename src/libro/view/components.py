@@ -31,9 +31,6 @@ class AdvancedSearchFiltersRow(ft.Row):
     def __init__(self, on_filters_change: Callable):
         self.on_filters_change = on_filters_change
 
-        # Get current year for default max
-        current_year = datetime.now().year
-
         # Year range controls
         self.year_min_input = ft.TextField(
             label="Min Year",
@@ -44,7 +41,6 @@ class AdvancedSearchFiltersRow(ft.Row):
         self.year_max_input = ft.TextField(
             label="Max Year",
             width=100,
-            value=str(current_year),
             on_change=self._on_filter_change,
             keyboard_type=ft.KeyboardType.NUMBER
         )
@@ -123,7 +119,7 @@ class AdvancedSearchFiltersRow(ft.Row):
 
     def _on_reset(self, e):
         self.year_min_input.value = ""
-        self.year_max_input.value = str(datetime.now().year)
+        self.year_max_input.value = ""
         self.pages_min_input.value = ""
         self.pages_max_input.value = ""
         self.genre_dropdown.value = "Any"

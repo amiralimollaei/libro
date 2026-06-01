@@ -371,7 +371,6 @@ source = { editable = "." }
 dependencies = [
     { name = "dataclasses-json" },
     { name = "flet" },
-    { name = "whoosh" },
 ]
 
 [package.dev-dependencies]
@@ -385,7 +384,6 @@ dev = [
 requires-dist = [
     { name = "dataclasses-json", specifier = ">=0.6.7" },
     { name = "flet", specifier = ">=0.85.1" },
-    { name = "whoosh", specifier = ">=2.7.4" },
 ]
 
 [package.metadata.requires-dev]
@@ -1068,13 +1066,4 @@ wheels = [
     { url = "https://mirror2.chabokan.net/pypi/packages/websockets/websockets-16.0-cp314-cp314t-win32.whl" },
     { url = "https://mirror2.chabokan.net/pypi/packages/websockets/websockets-16.0-cp314-cp314t-win_amd64.whl" },
     { url = "https://mirror2.chabokan.net/pypi/packages/websockets/websockets-16.0-py3-none-any.whl" },
-]
-
-[[package]]
-name = "whoosh"
-version = "2.7.4"
-source = { registry = "https://mirror2.chabokan.net/pypi/simple/" }
-sdist = { url = "https://mirror2.chabokan.net/pypi/packages/whoosh/Whoosh-2.7.4.tar.gz" }
-wheels = [
-    { url = "https://mirror2.chabokan.net/pypi/packages/whoosh/Whoosh-2.7.4-py2.py3-none-any.whl" },
 ]
