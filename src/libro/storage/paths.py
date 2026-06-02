@@ -21,9 +21,9 @@ class LibroPaths:
         return cls.root() / "books"
 
     @classmethod
-    def reading(cls) -> Path:
-        """Contains data related to the reading tab"""
-        return cls.root() / "reading"
+    def lending(cls) -> Path:
+        """Contains data related to the lending tab"""
+        return cls.root() / "lending"
 
     @classmethod
     def covers(cls) -> Path:

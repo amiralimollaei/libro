@@ -6,7 +6,7 @@ import flet as ft
 
 from ...callbacks import CallbackMixin, CallbackContext
 from ...storage.paths import LibroPaths
-from ...model.book import Genre, Author, Book
+from ...model.book import Genre, Person, BookEntry
 
 
 class OnAddBookCtx(CallbackContext):
@@ -191,9 +191,9 @@ class AddTab(ft.Container, CallbackMixin):
         self.register_callback("on_add_book", fn)
 
     def get_book_object(self):
-        return Book(
+        return BookEntry(
             title=self.title_input.value,
-            author=Author(
+            author=Person(
                 first_name=self.author_first_name_input.value,
                 last_name=self.author_last_name_input.value
             ),

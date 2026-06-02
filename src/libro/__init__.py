@@ -2,10 +2,12 @@ import os
 
 import flet as ft
 
+
 from .search.engine import BookSearchEngine
 from .storage.paths import LibroPaths
+from .model.book import BookEntry
+from .model.lending import LendingEntry
 from .model.statistics import Statistics
-from .model.book import Book
 from .storage.json import JsonIdNumeralStorage, JsonFileStorage
 from .view.main import MainView
 
@@ -16,9 +18,14 @@ class Libro(MainView):
 
         self.app_page: ft.Page | None = None
 
-        self.books_storage = JsonIdNumeralStorage[Book].from_directory(
-            item_cls=Book,
+        self.books_storage = JsonIdNumeralStorage[BookEntry].from_directory(
+            item_cls=BookEntry,
             directory=LibroPaths.books()
+        )
+
+        self.lending_storage = JsonIdNumeralStorage[LendingEntry].from_directory(
+            item_cls=LendingEntry,
+            directory=LibroPaths.lending()
         )
 
         self.statistics_storage = JsonFileStorage[Statistics].from_directory(

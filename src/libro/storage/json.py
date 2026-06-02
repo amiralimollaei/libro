@@ -142,6 +142,15 @@ class JsonIdNumeralStorage(StorageBase[T]):
         self._save_object(id, obj)
         self._notify_changed()
 
+    def get(self, id: int) -> Optional[T]:
+        return self.objects[id] if id in self.objects.keys() else None
+
+    def get_or_default(self, id: int, default: T) -> T:
+        return self.objects[id] if id in self.objects.keys() else default
+
+    def compute_if_absent(self, id: int, fn: Callable[[], T]) -> T:
+        return self.objects[id] if id in self.objects.keys() else fn()
+
     def _save_object(self, id: int, obj: T):
         json_data = obj.to_json().encode("utf-8")
         path = self.directory / f"{id}.json"

@@ -6,12 +6,14 @@ from .tabs import *
 class MainView(ft.Tabs):
     def __init__(self, **tabs_kwargs):
         self.lib_tab = LibraryTab()
+        self.lending_tab = LendingTab()
         self.add_tab = AddTab()
 
         self.bar = ft.TabBar(
             tabs=[
-                ft.Tab(label="Library", icon=ft.icons.Icons.LIBRARY_BOOKS),
-                ft.Tab(label="Add Book", icon=ft.icons.Icons.ADD_CIRCLE),
+                ft.Tab(label="Library", icon=ft.Icons.LIBRARY_BOOKS),
+                ft.Tab(label="Lending", icon=ft.Icons.OUTBOX),
+                ft.Tab(label="Add Book", icon=ft.Icons.ADD_CIRCLE),
             ]
         )
 
@@ -21,6 +23,11 @@ class MainView(ft.Tabs):
                 ft.Container(
                     alignment=ft.Alignment.CENTER,
                     content=self.lib_tab,
+                    padding=ft.Padding(left=20, right=20, top=20, bottom=0)
+                ),
+                ft.Container(
+                    alignment=ft.Alignment.CENTER,
+                    content=self.lending_tab,
                     padding=ft.Padding(left=20, right=20, top=20, bottom=0)
                 ),
                 ft.Container(

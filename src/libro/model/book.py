@@ -5,18 +5,8 @@ from typing import Optional
 
 import dataclasses_json
 
+from ..model.person import Person
 from ..storage.storable import StorableObject
-
-
-@dataclasses_json.dataclass_json(letter_case=dataclasses_json.LetterCase.CAMEL)  # pyright: ignore[reportArgumentType]
-@dataclasses.dataclass
-class Author:
-    first_name: str
-    last_name: str
-    biograpohy: Optional[str] = None
-
-    def full_name(self) -> str:
-        return self.first_name + " " + self.last_name
 
 
 class Genre(StrEnum):
@@ -164,7 +154,7 @@ class Genre(StrEnum):
     Childrens = auto()
     PictureBook = auto()
     MiddleGrade = auto()
-    
+
     @property
     def label(self) -> str:
         return re.sub(r'(?<!^)([A-Z])', r' \1', self.name)
@@ -172,9 +162,9 @@ class Genre(StrEnum):
 
 @dataclasses_json.dataclass_json(letter_case=dataclasses_json.LetterCase.CAMEL)  # pyright: ignore[reportArgumentType]
 @dataclasses.dataclass
-class Book(StorableObject):
+class BookEntry(StorableObject):
     title: str
-    author: Author
+    author: Person
     genre: Genre
     pages: int
     publish_year: int
