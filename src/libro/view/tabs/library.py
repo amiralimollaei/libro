@@ -61,12 +61,6 @@ class BookRow(ft.Dismissible, CallbackMixin):
         self.total_pages = book.pages
         self.current_page = book.current_page or 0
 
-        self.progress = (
-            self.current_page / self.total_pages
-            if self.total_pages > 0
-            else 0
-        )
-
         cover_src = LibroPaths.assets() / "placeholder-cover.png"
         if book.cover:
             cover_src = LibroPaths.covers() / book.cover
@@ -82,7 +76,7 @@ class BookRow(ft.Dismissible, CallbackMixin):
             )
         )
 
-        self.page_text = ft.Text(f"{self.current_page} of {self.total_pages}")
+        self.page_text = ft.Text(self.get_counter_text())
 
         self.page_counter_inputs = ft.Row(
             [
@@ -107,12 +101,12 @@ class BookRow(ft.Dismissible, CallbackMixin):
         )
 
         self.progress_text = ft.Text(
-            f"{self.progress * 100:.01f}%",
+            self.get_progress_text(),
             size=12,
             color=ft.Colors.OUTLINE,
         )
         self.progress_bar = ft.ProgressBar(
-            value=self.progress,
+            value=self.get_progress(),
             height=8,
             border_radius=4,
             expand=True
@@ -184,6 +178,12 @@ class BookRow(ft.Dismissible, CallbackMixin):
             on_dismiss=self._on_dismiss
         )
 
+    def get_progress(self):
+        return self.current_page / self.total_pages
+
+    def get_counter_text(self):
+        return f"{self.current_page} of {self.total_pages}"
+
     def register_on_book_changed(self, fn: Callable[[OnBookChangedCtx], None]):
         self.register_callback(OnBookChangedCtx.id, fn)
 
@@ -218,18 +218,15 @@ class BookRow(ft.Dismissible, CallbackMixin):
             self._refresh_progress()
 
     def _refresh_progress(self):
-        self.progress = (
-            self.current_page / self.total_pages
-            if self.total_pages > 0
-            else 0
-        )
-
-        self.page_text.value = f"{self.current_page} of {self.total_pages}"
-        self.progress_text.value = f"{self.progress * 100:.01f}%"
-        self.progress_bar.value = self.progress
+        self.page_text.value = self.get_counter_text()
+        self.progress_text.value = self.get_progress_text()
+        self.progress_bar.value = self.get_progress()
         self._run_callbacks(OnBookChangedCtx(self.book, self.book_id))
 
         self.update()
+
+    def get_progress_text(self):
+        return f"{self.get_progress() * 100:.01f}%"
 
 
 class AdvancedSearchFiltersColumn(ft.Column):
