@@ -3,7 +3,6 @@ from typing import Callable, Optional
 import flet as ft
 
 
-
 from ...storage.paths import LibroPaths
 from ...callbacks import CallbackMixin, CallbackContext
 from ...search.engine import BookSearchEngine
@@ -17,6 +16,7 @@ class OnSearchChangedCtx(CallbackContext):
     def __init__(self, filters: BookFilter):
         super().__init__()
         self.filters = filters
+
 
 class OnBookChangedCtx(CallbackContext):
     id = "on_book_changed"
@@ -342,11 +342,46 @@ class LibraryTab(ft.Container, CallbackMixin):
         self.__init_callbacks__([
             OnSearchChangedCtx.id
         ])
-        
+
+        self.search_no_result_view = ft.Container(
+            expand=True,
+            alignment=ft.Alignment.CENTER,
+            content=ft.Column(
+                [
+                    ft.Icon(
+                        ft.Icons.LOCAL_LIBRARY,
+                        size=96,
+                        color=ft.Colors.OUTLINE,
+                    ),
+                    ft.Text(
+                        "No books match your search",
+                        size=24,
+                        weight=ft.FontWeight.BOLD,
+                    ),
+                    ft.Text(
+                        "Try changing your filters.",
+                        color=ft.Colors.OUTLINE,
+                    ),
+                ],
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                alignment=ft.MainAxisAlignment.CENTER,
+                expand=True,
+                spacing=10,
+            ),
+        )
+
         self.books_storage: JsonIdNumeralStorage | None = None
         self.search_engine: BookSearchEngine | None = None
 
-        self.book_list_view = ft.ListView(expand=True, spacing=10)
+        self.book_list_view = ft.ListView(
+            expand=True,
+            spacing=10
+        )
+
+        self.library_content = ft.Container(
+            expand=True,
+            content=self.book_list_view
+        )
         self.search_input = ft.TextField(label="Search Your Library", on_change=self.on_search_change, expand=True)
 
         self.is_advanced_search = False
@@ -365,17 +400,19 @@ class LibraryTab(ft.Container, CallbackMixin):
             clip_behavior=ft.ClipBehavior.HARD_EDGE,
         )
 
+        self.main_book_view = ft.Column(
+            [
+                ft.Row([self.search_input, self.toggle_button]),
+                self.library_content,
+            ],
+            alignment=ft.MainAxisAlignment.START,
+            scroll=ft.ScrollMode.AUTO,
+            expand=True,
+        )
+
         self.main_column = ft.Row(
             [
-                ft.Column(
-                    [
-                        ft.Row([self.search_input, self.toggle_button]),
-                        self.book_list_view,
-                    ],
-                    alignment=ft.MainAxisAlignment.START,
-                    scroll=ft.ScrollMode.AUTO,
-                    expand=True,
-                ),
+                self.main_book_view,
                 self.advanced_search_container
             ],
             vertical_alignment=ft.CrossAxisAlignment.START
@@ -429,15 +466,10 @@ class LibraryTab(ft.Container, CallbackMixin):
     def on_search_change(self, e: Optional[ft.Event] = None):
         filters = self.get_book_filter()
         self._run_callbacks(OnSearchChangedCtx(filters))
-        
+
         assert self.search_engine
         assert self.books_storage
         matched_books = self.search_engine.search(filters)
-        
-        if matched_books:
-            self.search_input.error = None
-        else:
-            self.search_input.error = "Not Found"
 
         self.update_books(matched_books)
 
@@ -448,11 +480,20 @@ class LibraryTab(ft.Container, CallbackMixin):
     def on_book_remove(self, ctx: OnBookRemoveCtx):
         if self.books_storage:
             self.books_storage.remove_by_id(ctx.book_id)
-        
+
     def update_books(self, books: dict[int, BookEntry]):
+        if not books:
+            self.library_content.content = self.search_no_result_view
+            #self.main_book_view.scroll = None
+            return
+
         self.book_list_view.controls = []
+
         for id, book in books.items():
             book_row = BookRow(book, book_id=id)
             book_row.register_on_book_changed(self.on_book_change)
             book_row.register_on_book_remove(self.on_book_remove)
             self.book_list_view.controls.append(book_row)
+
+        self.library_content.content = self.book_list_view
+        #self.main_book_view.scroll = ft.ScrollMode.AUTO
