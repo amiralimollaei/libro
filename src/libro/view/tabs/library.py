@@ -3,7 +3,7 @@ from typing import Callable, Optional
 import flet as ft
 
 
-from ..components import BookRow, OnBookChangedCtx, AdvancedSearchFiltersColumn
+from ..components import BookRow, OnBookChangedCtx, AdvancedSearchFiltersColumn, OnBookRemoveCtx
 from ...callbacks import CallbackMixin, CallbackContext
 from ...search.engine import BookSearchEngine
 from ...storage.json import JsonIdNumeralStorage, OnObjectsChangedCtx
@@ -126,9 +126,14 @@ class LibraryTab(ft.Container, CallbackMixin):
         if self.books_storage:
             self.books_storage.update_by_id(ctx.book_id, ctx.book)
 
+    def on_book_remove(self, ctx: OnBookRemoveCtx):
+        if self.books_storage:
+            self.books_storage.remove_by_id(ctx.book_id)
+        
     def update_books(self, books: dict[int, Book]):
         self.book_list_view.controls = []
         for id, book in books.items():
             book_row = BookRow(book, book_id=id)
             book_row.register_on_book_changed(self.on_book_change)
+            book_row.register_on_book_remove(self.on_book_remove)
             self.book_list_view.controls.append(book_row)

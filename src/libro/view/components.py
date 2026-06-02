@@ -161,7 +161,7 @@ class BookRow(ft.Dismissible, CallbackMixin):
                         ),
                     )
                 ],
-                expand = True
+                expand=True
             ),
             dismiss_direction=ft.DismissDirection.END_TO_START,
             background=ft.Container(
@@ -173,6 +173,7 @@ class BookRow(ft.Dismissible, CallbackMixin):
                     color=ft.Colors.WHITE,
                 ),
             ),
+            on_dismiss=self._on_dismiss
         )
 
     def register_on_book_changed(self, fn: Callable[[OnBookChangedCtx], None]):
@@ -180,6 +181,9 @@ class BookRow(ft.Dismissible, CallbackMixin):
 
     def register_on_book_remove(self, fn: Callable[[OnBookRemoveCtx], None]):
         self.register_callback(OnBookRemoveCtx.id, fn)
+
+    def _on_dismiss(self, e):
+        self._run_callbacks(OnBookRemoveCtx(self.book_id))
 
     def _increment_page(self, e):
         if self.current_page < self.total_pages:
