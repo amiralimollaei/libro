@@ -1,14 +1,12 @@
 import os
-import time
 
 import flet as ft
 
 from .search.engine import BookSearchEngine
 from .storage.paths import LibroPaths
 from .model.statistics import Statistics
-from .model.reading import ReadingInfo
 from .model.book import Book
-from .storage.json import JsonDirectoryStorage, JsonFileStorage
+from .storage.json import JsonIdNumeralStorage, JsonFileStorage
 from .view.main import MainView
 
 
@@ -18,15 +16,11 @@ class Libro(MainView):
 
         self.app_page: ft.Page | None = None
 
-        self.books_storage = JsonDirectoryStorage[Book].from_directory(
+        self.books_storage = JsonIdNumeralStorage[Book].from_directory(
             item_cls=Book,
             directory=LibroPaths.books()
         )
 
-        self.reading_storage = JsonDirectoryStorage[ReadingInfo].from_directory(
-            item_cls=ReadingInfo,
-            directory=LibroPaths.reading()
-        )
         self.statistics_storage = JsonFileStorage[Statistics].from_directory(
             item_cls=Statistics,
             path=LibroPaths.statistics()
@@ -39,9 +33,6 @@ class Libro(MainView):
         self.lib_tab.update_books(self.books_storage.objects)
 
         self.add_tab.register_on_add_book_fn(self.on_add_book)
-
-        self.reading_tab.update_reading_books(self.reading_storage.objects, self.books_storage.objects)
-        self.reading_tab.register_on_book_dismissed_fn(self.on_book_dismissed)
 
     def on_add_book(self, e):
         assert self.app_page
@@ -64,51 +55,22 @@ class Libro(MainView):
             self.app_page.show_dialog(banner)
             return
 
-        assert book
-        book.id = int(time.time() * 1000000)
-
         self.books_storage.add(book)
         self.books_storage.save()
 
         self.add_tab.reset()
-
-        def add_to_reading_list(e):
-            self.add_new_reading_book(book)
-            self.app_page.pop_dialog()  # pyright: ignore[reportOptionalMemberAccess]
 
         self.app_page.show_dialog(dialog=ft.AlertDialog(
             title=ft.Text("Add Book"),
             content=ft.Text("Book was successfully added to your library."),
             actions=[
                 ft.TextButton(
-                    "Dismiss",
+                    "Ok",
                     on_click=lambda e: self.app_page.pop_dialog()  # pyright: ignore[reportOptionalMemberAccess]
-                ),
-                ft.TextButton(
-                    "Add To Reading List",
-                    on_click=add_to_reading_list
                 )
             ],
             open=True,
         ))
-
-        self.update()
-
-    def add_new_reading_book(self, book: Book):
-        assert book.id
-        reading_info = ReadingInfo(book_id=book.id, since_timestamp=time.time())
-        self.reading_storage.add(reading_info)
-        self.reading_storage.save()
-
-        self.reading_tab.update_reading_books(self.reading_storage.objects, self.books_storage.objects)
-
-        self.update()
-
-    def on_book_dismissed(self, reading_info: ReadingInfo, book: Book):
-        self.reading_storage.remove(reading_info)
-        self.reading_storage.save()
-
-        self.reading_tab.update_reading_books(self.reading_storage.objects, self.books_storage.objects)
 
         self.update()
 

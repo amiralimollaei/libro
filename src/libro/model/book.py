@@ -3,7 +3,8 @@ from enum import StrEnum, auto
 from typing import Optional
 
 import dataclasses_json
-from dataclasses_json.api import DataClassJsonMixin
+
+from ..storage.storable import StorableObject
 
 
 @dataclasses_json.dataclass_json(letter_case=dataclasses_json.LetterCase.CAMEL)  # pyright: ignore[reportArgumentType]
@@ -27,7 +28,7 @@ class Genre(StrEnum):
 
 @dataclasses_json.dataclass_json(letter_case=dataclasses_json.LetterCase.CAMEL)  # pyright: ignore[reportArgumentType]
 @dataclasses.dataclass
-class Book(DataClassJsonMixin):
+class Book(StorableObject):
     title: str
     author: Author
     genre: Genre
@@ -35,7 +36,6 @@ class Book(DataClassJsonMixin):
     publish_year: int
     summary: Optional[str] = None
     cover: Optional[str] = None
-    id: int | None = None
     current_page: int | None = None
 
 

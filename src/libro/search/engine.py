@@ -1,29 +1,29 @@
 from ..model.book import Book, BookFilter
-from ..storage.json import JsonDirectoryStorage
+from ..storage.json import JsonIdNumeralStorage
 
 
 class BookSearchEngine:
-    def __init__(self, storage: JsonDirectoryStorage[Book]):
+    def __init__(self, storage: JsonIdNumeralStorage[Book]):
         self.storage = storage
 
-    def search(self, filters: BookFilter) -> list[int]:
-        match_ids = []
-        for book in self.storage.objects:
+    def search(self, filters: BookFilter) -> dict[int, Book]:
+        matched_books: dict[int, Book] = dict()
+        for id, book in self.storage.objects.items():
             if filters.year_min and filters.year_min > book.publish_year:
                 continue
             if filters.year_max and filters.year_max < book.publish_year:
                 continue
-            
+
             if filters.pages_min and filters.pages_min > book.pages:
                 continue
             if filters.pages_max and filters.pages_max < book.pages:
                 continue
-            
-            if filters.include_title and filters.query.lower() in book.title.lower():
-                match_ids.append(book.id)
-            elif filters.include_author and filters.query.lower() in book.author.full_name().lower():
-                match_ids.append(book.id)
-            elif filters.include_summary and book.summary is not None and filters.query.lower() in book.summary.lower():
-                match_ids.append(book.id)
 
-        return match_ids
+            if filters.include_title and filters.query.lower() in book.title.lower():
+                matched_books[id] = book
+            elif filters.include_author and filters.query.lower() in book.author.full_name().lower():
+                matched_books[id] = book
+            elif filters.include_summary and book.summary is not None and filters.query.lower() in book.summary.lower():
+                matched_books[id] = book
+
+        return matched_books

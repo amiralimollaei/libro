@@ -2,9 +2,11 @@ from typing import Callable, Optional
 
 import flet as ft
 
-from ..components import BookRow, AdvancedSearchFiltersColumn
+
+from ..components import BookRow, OnBookChangedCtx, AdvancedSearchFiltersColumn
 from ...callbacks import CallbackMixin, CallbackContext
-from ...storage.json import JsonDirectoryStorage, OnObjectsChangedCtx
+from ...search.engine import BookSearchEngine
+from ...storage.json import JsonIdNumeralStorage, OnObjectsChangedCtx
 from ...model.book import Book, BookFilter
 
 
@@ -21,6 +23,9 @@ class LibraryTab(ft.Container, CallbackMixin):
         self.__init_callbacks__([
             OnSearchChangedCtx.id
         ])
+        
+        self.books_storage: JsonIdNumeralStorage | None = None
+        self.search_engine: BookSearchEngine | None = None
 
         self.book_list_view = ft.ListView(expand=True, spacing=10)
         self.search_input = ft.TextField(label="Search Your Library", on_change=self.on_search_change, expand=True)
@@ -62,12 +67,13 @@ class LibraryTab(ft.Container, CallbackMixin):
     def register_search_engine(self, search_engine):
         self.search_engine = search_engine
 
-    def register_book_storage(self, storage: JsonDirectoryStorage[Book]):
+    def register_book_storage(self, storage: JsonIdNumeralStorage[Book]):
         self.books_storage = storage
         self.books_storage.register_change_callback(self.on_books_changed)
 
-    def on_books_changed(self, ctx: OnObjectsChangedCtx[Book]):
-        self.update_books(ctx.objects)
+    def on_books_changed(self, ctx: OnObjectsChangedCtx):
+        assert self.books_storage
+        self.update_books(self.books_storage.objects)
 
     def _on_toggle(self, e):
         self.is_advanced_search = not self.is_advanced_search
@@ -104,28 +110,25 @@ class LibraryTab(ft.Container, CallbackMixin):
     def on_search_change(self, e: Optional[ft.Event] = None):
         filters = self.get_book_filter()
         self._run_callbacks(OnSearchChangedCtx(filters))
-
-        match_ids = self.search_engine.search(filters)
-        if match_ids:
-            matched_books = []
-            for book in self.books_storage.objects:
-                if book.id in match_ids:
-                    matched_books.append(book)
-        else:
-            matched_books = self.books_storage.objects
-
-        if match_ids:
+        
+        assert self.search_engine
+        assert self.books_storage
+        matched_books = self.search_engine.search(filters)
+        
+        if matched_books:
             self.search_input.error = None
         else:
             self.search_input.error = "Not Found"
 
         self.update_books(matched_books)
 
-    def update_books(self, books: list[Book]):
-        self.books = books
+    def on_book_change(self, ctx: OnBookChangedCtx):
+        if self.books_storage:
+            self.books_storage.update_by_id(ctx.book_id, ctx.book)
 
+    def update_books(self, books: dict[int, Book]):
         self.book_list_view.controls = []
-        for book in self.books:
-            self.book_list_view.controls.append(
-                BookRow(book)
-            )
+        for id, book in books.items():
+            book_row = BookRow(book, book_id=id)
+            book_row.register_on_book_changed(self.on_book_change)
+            self.book_list_view.controls.append(book_row)

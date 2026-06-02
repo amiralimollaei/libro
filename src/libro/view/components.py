@@ -3,20 +3,42 @@ from typing import Callable, Optional
 
 import flet as ft
 
+from ..callbacks import CallbackMixin, CallbackContext
 from ..storage.paths import LibroPaths
 from ..model.book import Book, Genre
 
 
 # views shared by most tabs
 
-class BookRow(ft.Row):
-    COVER_WIDTH = 80
-    COVER_HEIGHT = 120
+class OnBookChangedCtx(CallbackContext):
+    id = "on_book_changed"
 
-    def __init__(self, book: Book):
+    def __init__(self, book: Book, book_id: int):
         super().__init__()
 
         self.book = book
+        self.book_id = book_id
+
+    def get_book(self) -> Book:
+        return self.book
+    
+    def get_book_id(self) -> int:
+        return self.book_id
+
+
+class BookRow(ft.Row, CallbackMixin):
+    COVER_WIDTH = 80
+    COVER_HEIGHT = 120
+
+    def __init__(self, book: Book, book_id: int):
+        super().__init__()
+
+        self.__init_callbacks__([
+            OnBookChangedCtx.id
+        ])
+
+        self.book = book
+        self.book_id = book_id
 
         self.title = book.title
         self.author = book.author.full_name()
@@ -46,7 +68,7 @@ class BookRow(ft.Row):
                 src=str(cover_src)
             )
         )
-        
+
         self.page_text = ft.Text(f"{self.current_page}/{self.total_pages}")
 
         self.page_counter_inputs = ft.Row(
@@ -143,6 +165,9 @@ class BookRow(ft.Row):
         #     # on_dismiss=...
         # )
 
+    def register_on_book_changed(self, fn: Callable[[OnBookChangedCtx], None]):
+        self.register_callback(OnBookChangedCtx.id, fn)
+
     def _increment_page(self, e):
         if self.current_page < self.total_pages:
             self.current_page += 1
@@ -165,9 +190,10 @@ class BookRow(ft.Row):
         self.page_text.value = f"{self.current_page}/{self.total_pages}"
         self.progress_text.value = f"{self.progress * 100:.0f}%"
         self.progress_bar.value = self.progress
-        # self.on_book_changed()
+        self._run_callbacks(OnBookChangedCtx(self.book, self.book_id))
 
         self.update()
+
 
 class AdvancedSearchFiltersColumn(ft.Column):
     def __init__(self, on_filters_change: Callable):
