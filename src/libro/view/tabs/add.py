@@ -197,7 +197,7 @@ class AddTab(ft.Container, CallbackMixin):
                 first_name=self.author_first_name_input.value,
                 last_name=self.author_last_name_input.value
             ),
-            genre=Genre(self.genre_input.value), # pyright: ignore[reportArgumentType]
+            genre=Genre(self.genre_input.value),  # pyright: ignore[reportArgumentType]
             pages=int(self.pages_input.value),
             publish_year=int(self.publish_year_input.value),
             summary=self.summary_input.value,

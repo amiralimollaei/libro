@@ -481,7 +481,6 @@ class LibraryTab(ft.Container, CallbackMixin):
     def update_books(self, books: dict[int, BookEntry]):
         if not books:
             self.library_content.content = self.search_no_result_view
-            #self.main_book_view.scroll = None
             return
 
         self.book_list_view.controls = []
@@ -493,4 +492,3 @@ class LibraryTab(ft.Container, CallbackMixin):
             self.book_list_view.controls.append(book_row)
 
         self.library_content.content = self.book_list_view
-        #self.main_book_view.scroll = ft.ScrollMode.AUTO

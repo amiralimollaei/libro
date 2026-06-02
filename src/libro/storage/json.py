@@ -1,7 +1,7 @@
 import hashlib
 import os
 from pathlib import Path
-from typing import Any, Callable, Generic, Optional, Type, TypeVar
+from typing import Callable, Generic, Optional, Type, TypeVar
 
 from libro.model.storage import IdNumeralStorageMeta
 

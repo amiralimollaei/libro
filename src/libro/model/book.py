@@ -1,9 +1,10 @@
 import dataclasses
-from enum import StrEnum, auto
 import re
+from enum import StrEnum, auto
 from typing import Optional
 
 import dataclasses_json
+
 
 from ..model.person import Person
 from ..storage.storable import StorableObject

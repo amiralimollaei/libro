@@ -3,10 +3,10 @@ import time
 
 import flet as ft
 
-from libro.model.book import BookEntry
-from libro.storage.paths import LibroPaths
 
 from ...storage.json import JsonIdNumeralStorage, OnObjectsChangedCtx
+from ...storage.paths import LibroPaths
+from ...model.book import BookEntry
 from ...model.lending import LendingEntry
 
 
