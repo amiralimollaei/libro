@@ -21,20 +21,27 @@ class OnBookChangedCtx(CallbackContext):
 
     def get_book(self) -> Book:
         return self.book
-    
+
     def get_book_id(self) -> int:
         return self.book_id
 
 
-class BookRow(ft.Row, CallbackMixin):
+class OnBookRemoveCtx(CallbackContext):
+    id = "on_book_remove"
+
+    def __init__(self, book_id: int):
+        super().__init__()
+        self.book_id = book_id
+
+
+class BookRow(ft.Dismissible, CallbackMixin):
     COVER_WIDTH = 80
     COVER_HEIGHT = 120
 
     def __init__(self, book: Book, book_id: int):
-        super().__init__()
-
         self.__init_callbacks__([
-            OnBookChangedCtx.id
+            OnBookChangedCtx.id,
+            OnBookRemoveCtx.id
         ])
 
         self.book = book
@@ -51,8 +58,6 @@ class BookRow(ft.Row, CallbackMixin):
             if self.total_pages > 0
             else 0
         )
-
-        self.expand = True
 
         cover_src = LibroPaths.assets() / "placeholder-cover.png"
         if book.cover:
@@ -73,22 +78,28 @@ class BookRow(ft.Row, CallbackMixin):
 
         self.page_counter_inputs = ft.Row(
             [
-                ft.IconButton(
-                    ft.Icons.REMOVE,
-                    icon_size=18,
+                ft.TextButton(
+                    content="-10",
+                    on_click=self._decrement_page_10,
+                ),
+                ft.TextButton(
+                    content="-1",
                     on_click=self._decrement_page,
                 ),
                 self.page_text,
-                ft.IconButton(
-                    ft.Icons.ADD,
-                    icon_size=18,
+                ft.TextButton(
+                    content="+1",
                     on_click=self._increment_page,
+                ),
+                ft.TextButton(
+                    content="+10",
+                    on_click=self._increment_page_10,
                 ),
             ]
         )
 
         self.progress_text = ft.Text(
-            f"{self.progress * 100:.0f}%",
+            f"{self.progress * 100:.01f}%",
             size=12,
             color=ft.Colors.OUTLINE,
         )
@@ -99,74 +110,76 @@ class BookRow(ft.Row, CallbackMixin):
             expand=True
         )
 
-        self.controls = [
-            ft.Container(
-                expand=True,
-                padding=10,
-                content=ft.Column(
-                    spacing=8,
-                    controls=[
-                        ft.Row(
-                            vertical_alignment=ft.CrossAxisAlignment.START,
+        super().__init__(
+            content=ft.Row(
+                [
+                    ft.Container(
+                        expand=True,
+                        padding=10,
+                        content=ft.Column(
+                            spacing=8,
                             controls=[
-                                cover,
-                                ft.Column(
-                                    expand=True,
-                                    spacing=4,
+                                ft.Row(
+                                    vertical_alignment=ft.CrossAxisAlignment.START,
                                     controls=[
-                                        ft.Text(
-                                            self.title,
-                                            size=18,
-                                            weight=ft.FontWeight.BOLD,
-                                            max_lines=2,
-                                            overflow=ft.TextOverflow.ELLIPSIS,
+                                        cover,
+                                        ft.Column(
+                                            expand=True,
+                                            spacing=4,
+                                            controls=[
+                                                ft.Text(
+                                                    self.title,
+                                                    size=18,
+                                                    weight=ft.FontWeight.BOLD,
+                                                    max_lines=2,
+                                                    overflow=ft.TextOverflow.ELLIPSIS,
+                                                ),
+                                                ft.Text(
+                                                    self.author,
+                                                    size=14,
+                                                ),
+                                                ft.Text(
+                                                    str(self.year),
+                                                    size=13,
+                                                    color=ft.Colors.OUTLINE,
+                                                ),
+                                            ],
                                         ),
-                                        ft.Text(
-                                            self.author,
-                                            size=14,
-                                        ),
-                                        ft.Text(
-                                            str(self.year),
-                                            size=13,
-                                            color=ft.Colors.OUTLINE,
+                                        ft.Column(
+                                            horizontal_alignment=ft.CrossAxisAlignment.END,
+                                            controls=[
+                                                self.page_counter_inputs
+                                            ],
                                         ),
                                     ],
                                 ),
-                                ft.Column(
-                                    horizontal_alignment=ft.CrossAxisAlignment.END,
-                                    controls=[
-                                        self.page_counter_inputs,
-                                    ],
-                                ),
+                                ft.Row([
+                                    self.progress_text,
+                                    self.progress_bar,
+                                ], expand=True),
                             ],
                         ),
-                        ft.Row([
-                            self.progress_text,
-                            self.progress_bar,
-                        ], expand=True),
-                    ],
+                    )
+                ],
+                expand = True
+            ),
+            dismiss_direction=ft.DismissDirection.END_TO_START,
+            background=ft.Container(
+                bgcolor=ft.Colors.RED,
+                alignment=ft.Alignment.CENTER_RIGHT,
+                padding=20,
+                content=ft.Icon(
+                    ft.Icons.DELETE,
+                    color=ft.Colors.WHITE,
                 ),
-            )
-        ]
-
-        # should we make this a dismissable?
-        # self.dismissible = ft.Dismissible(
-        #     content=self,
-        #     dismiss_direction=ft.DismissDirection.END_TO_START,
-        #     background=ft.Container(
-        #         bgcolor=ft.Colors.RED,
-        #         alignment=ft.Alignment.CENTER_RIGHT,
-        #         padding=20,
-        #          content=ft.Icon(
-        #             ft.Icons.DELETE,
-        #             color=ft.Colors.WHITE,
-        #         ),
-        #     ),
-        #     # on_dismiss=...
-        # )
+            ),
+        )
 
     def register_on_book_changed(self, fn: Callable[[OnBookChangedCtx], None]):
         self.register_callback(OnBookChangedCtx.id, fn)
+
+    def register_on_book_remove(self, fn: Callable[[OnBookRemoveCtx], None]):
+        self.register_callback(OnBookRemoveCtx.id, fn)
 
     def _increment_page(self, e):
         if self.current_page < self.total_pages:
@@ -174,9 +187,21 @@ class BookRow(ft.Row, CallbackMixin):
             self.book.current_page = self.current_page
             self._refresh_progress()
 
+    def _increment_page_10(self, e):
+        if self.current_page < self.total_pages:
+            self.current_page += 10
+            self.book.current_page = self.current_page
+            self._refresh_progress()
+
     def _decrement_page(self, e):
         if self.current_page > 0:
             self.current_page -= 1
+            self.book.current_page = self.current_page
+            self._refresh_progress()
+
+    def _decrement_page_10(self, e):
+        if self.current_page > 0:
+            self.current_page -= 10
             self.book.current_page = self.current_page
             self._refresh_progress()
 
@@ -188,7 +213,7 @@ class BookRow(ft.Row, CallbackMixin):
         )
 
         self.page_text.value = f"{self.current_page}/{self.total_pages}"
-        self.progress_text.value = f"{self.progress * 100:.0f}%"
+        self.progress_text.value = f"{self.progress * 100:.01f}%"
         self.progress_bar.value = self.progress
         self._run_callbacks(OnBookChangedCtx(self.book, self.book_id))
 
