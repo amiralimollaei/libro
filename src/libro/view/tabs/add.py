@@ -45,7 +45,7 @@ class AddTab(ft.Container, CallbackMixin):
         self.genre_input = ft.Dropdown(
             label="Genre",
             on_select=self.validate_genre_input,
-            options=[ft.dropdown.Option(e.title()) for e in Genre],
+            options=[ft.dropdown.Option(e.label) for e in Genre],
             width=160
         )
         self.pages_input = ft.TextField(
