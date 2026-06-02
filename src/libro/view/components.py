@@ -79,8 +79,8 @@ class BookRow(ft.Dismissible, CallbackMixin):
         self.page_counter_inputs = ft.Row(
             [
                 ft.TextButton(
-                    content="-10",
-                    on_click=self._decrement_page_10,
+                    content="-5",
+                    on_click=self._decrement_page_5,
                 ),
                 ft.TextButton(
                     content="-1",
@@ -92,8 +92,8 @@ class BookRow(ft.Dismissible, CallbackMixin):
                     on_click=self._increment_page,
                 ),
                 ft.TextButton(
-                    content="+10",
-                    on_click=self._increment_page_10,
+                    content="+5",
+                    on_click=self._increment_page_5,
                 ),
             ]
         )
@@ -186,26 +186,26 @@ class BookRow(ft.Dismissible, CallbackMixin):
         self._run_callbacks(OnBookRemoveCtx(self.book_id))
 
     def _increment_page(self, e):
-        if self.current_page < self.total_pages:
+        if (self.current_page + 1) <= self.total_pages:
             self.current_page += 1
             self.book.current_page = self.current_page
             self._refresh_progress()
 
-    def _increment_page_10(self, e):
-        if self.current_page < self.total_pages:
-            self.current_page += 10
+    def _increment_page_5(self, e):
+        if (self.current_page + 5) <= self.total_pages:
+            self.current_page += 5
             self.book.current_page = self.current_page
             self._refresh_progress()
 
     def _decrement_page(self, e):
-        if self.current_page > 0:
+        if (self.current_page - 1) >= 0:
             self.current_page -= 1
             self.book.current_page = self.current_page
             self._refresh_progress()
 
-    def _decrement_page_10(self, e):
-        if self.current_page > 0:
-            self.current_page -= 10
+    def _decrement_page_5(self, e):
+        if (self.current_page - 5) >= 0:
+            self.current_page -= 5
             self.book.current_page = self.current_page
             self._refresh_progress()
 
