@@ -45,7 +45,13 @@ class AddTab(ft.Container, CallbackMixin):
         self.genre_input = ft.Dropdown(
             label="Genre",
             on_select=self.validate_genre_input,
-            options=[ft.dropdown.Option(e.label) for e in Genre],
+            options=[
+                ft.dropdown.Option(
+                    key=genre.value,
+                    text=genre.label
+                )
+                for genre in Genre
+            ],
             width=160
         )
         self.pages_input = ft.TextField(
@@ -191,7 +197,7 @@ class AddTab(ft.Container, CallbackMixin):
                 first_name=self.author_first_name_input.value,
                 last_name=self.author_last_name_input.value
             ),
-            genre=Genre[self.genre_input.value.title()],  # pyright: ignore[reportOptionalMemberAccess]
+            genre=Genre(self.genre_input.value), # pyright: ignore[reportArgumentType]
             pages=int(self.pages_input.value),
             publish_year=int(self.publish_year_input.value),
             summary=self.summary_input.value,
