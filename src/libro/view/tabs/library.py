@@ -82,7 +82,7 @@ class BookRow(ft.Dismissible, CallbackMixin):
             )
         )
 
-        self.page_text = ft.Text(f"{self.current_page}/{self.total_pages}")
+        self.page_text = ft.Text(f"{self.current_page} of {self.total_pages}")
 
         self.page_counter_inputs = ft.Row(
             [
@@ -224,7 +224,7 @@ class BookRow(ft.Dismissible, CallbackMixin):
             else 0
         )
 
-        self.page_text.value = f"{self.current_page}/{self.total_pages}"
+        self.page_text.value = f"{self.current_page} of {self.total_pages}"
         self.progress_text.value = f"{self.progress * 100:.01f}%"
         self.progress_bar.value = self.progress
         self._run_callbacks(OnBookChangedCtx(self.book, self.book_id))
