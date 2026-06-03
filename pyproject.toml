@@ -38,5 +38,4 @@ company = "AmirAli Mollaei"
 copyright = "Copyright (C) 2023-2026 by AmirAli Mollaei"
 
 [tool.flet.app]
-path = "src/libro"
-module = "__main__.py"
+path = "src"

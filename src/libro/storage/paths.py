@@ -1,9 +1,18 @@
+import os
 from pathlib import Path
 from typing import Sequence
 
 
+def find_data_directory():
+    app_data_dir = os.getenv("FLET_APP_STORAGE_DATA")
+    if app_data_dir:
+        return Path(app_data_dir) / ".libro"
+    else:
+        return Path.home() / ".libro"
+
+
 class LibroPaths:
-    _root = Path.home() / ".libro"
+    _root = find_data_directory()
 
     # ---- configuration ----
     @classmethod

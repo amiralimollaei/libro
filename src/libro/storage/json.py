@@ -95,7 +95,7 @@ class JsonBlobStorage(StorageBase[T]):
             path.write_bytes(json_data)
 
     @classmethod
-    def from_directory(cls, item_cls: Type[T], directory: Path) -> JsonBlobStorage[T]:
+    def from_directory(cls, item_cls: Type[T], directory: Path) -> 'JsonBlobStorage[T]':
         objects: list[T] = []
 
         if not directory.exists():
@@ -162,7 +162,7 @@ class JsonIdNumeralStorage(StorageBase[T]):
         self.meta_path.write_bytes(self.meta.to_json().encode("utf-8"))
 
     @classmethod
-    def from_directory(cls, item_cls: Type[T], directory: Path) -> JsonIdNumeralStorage[T]:
+    def from_directory(cls, item_cls: Type[T], directory: Path) -> 'JsonIdNumeralStorage[T]':
         objects: dict[int, T] = dict()
 
         if not directory.exists():
@@ -207,7 +207,7 @@ class JsonFileStorage(Generic[T]):
         self.path.write_bytes(json_data)
 
     @classmethod
-    def from_directory(cls, item_cls: Type[T], path: Path) -> JsonFileStorage[T]:
+    def from_directory(cls, item_cls: Type[T], path: Path) -> 'JsonFileStorage[T]':
         object: Optional[T] = None
 
         if not path.exists():
