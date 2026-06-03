@@ -1,5 +1,5 @@
 
-# ![Libro](src/libro/assets/icon-32x.png) Libro - Your Personal Library
+# ![Libro](src/libro/assets/icon-64x.png) Libro - Your Personal Library
 
 Collage Project, Feature List:
 
