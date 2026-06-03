@@ -9,4 +9,3 @@ Collage Project, Feature List:
 - [x] Track reading progress in the library
 - [ ] Lending Books
 - [ ] Statistics
-
