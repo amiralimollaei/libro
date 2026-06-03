@@ -38,6 +38,10 @@ class MainView(ft.Tabs):
             ],
         )
 
+        self.lib_tab.register_lend_callback(
+            self.on_lend_book_requested
+        )
+
         super().__init__(
             length=3,
             expand=True,
@@ -50,3 +54,10 @@ class MainView(ft.Tabs):
             ),
             **tabs_kwargs
         )
+
+    def on_lend_book_requested(self, ctx: OnLendBookRequestedCtx):
+        # TODO:
+        # 1- show lending dialog
+        # 2- create LendingEntry
+        # 3- add to lending storage
+        ...

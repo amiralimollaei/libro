@@ -34,6 +34,24 @@ class OnBookChangedCtx(CallbackContext):
         return self.book_id
 
 
+class OnBookLendCtx(CallbackContext):
+    id = "on_book_lend"
+
+    def __init__(self, book: BookEntry, book_id: int):
+        super().__init__()
+
+        self.book = book
+        self.book_id = book_id
+
+class OnLendBookRequestedCtx(CallbackContext):
+    id = "on_lend_book_requested"
+
+    def __init__(self, book: BookEntry, book_id: int):
+        super().__init__()
+
+        self.book = book
+        self.book_id = book_id
+
 class OnBookRemoveCtx(CallbackContext):
     id = "on_book_remove"
 
@@ -49,7 +67,8 @@ class BookRow(ft.Dismissible, CallbackMixin):
     def __init__(self, book: BookEntry, book_id: int):
         self.__init_callbacks__([
             OnBookChangedCtx.id,
-            OnBookRemoveCtx.id
+            OnBookRemoveCtx.id,
+            OnBookLendCtx.id
         ])
 
         self.book = book
@@ -98,6 +117,12 @@ class BookRow(ft.Dismissible, CallbackMixin):
                     on_click=self._increment_page_5,
                 ),
             ]
+        )
+
+        self.lend_button = ft.IconButton(
+            icon=ft.Icons.PERSON_ADD,
+            tooltip="Lend Book",
+            on_click=self._lend_book,
         )
 
         self.progress_text = ft.Text(
@@ -150,7 +175,8 @@ class BookRow(ft.Dismissible, CallbackMixin):
                                         ft.Column(
                                             horizontal_alignment=ft.CrossAxisAlignment.END,
                                             controls=[
-                                                self.page_counter_inputs
+                                                self.page_counter_inputs,
+                                                self.lend_button
                                             ],
                                         ),
                                     ],
@@ -189,6 +215,17 @@ class BookRow(ft.Dismissible, CallbackMixin):
 
     def register_on_book_remove(self, fn: Callable[[OnBookRemoveCtx], None]):
         self.register_callback(OnBookRemoveCtx.id, fn)
+
+    def register_on_book_lend(self, fn: Callable[[OnBookLendCtx], None]):
+        self.register_callback(OnBookLendCtx.id, fn)
+
+    def _lend_book(self, e):
+        self._run_callbacks(
+            OnBookLendCtx(
+                self.book,
+                self.book_id
+            )
+        )
 
     def _on_dismiss(self, e):
         self._run_callbacks(OnBookRemoveCtx(self.book_id))
@@ -337,7 +374,8 @@ class AdvancedSearchFiltersColumn(ft.Column):
 class LibraryTab(ft.Container, CallbackMixin):
     def __init__(self, **container_kwargs):
         self.__init_callbacks__([
-            OnSearchChangedCtx.id
+            OnSearchChangedCtx.id,
+            OnLendBookRequestedCtx.id
         ])
 
         self.search_no_result_view = ft.Container(
@@ -423,10 +461,21 @@ class LibraryTab(ft.Container, CallbackMixin):
     def register_book_storage(self, storage: JsonIdNumeralStorage[BookEntry]):
         self.books_storage = storage
         self.books_storage.register_change_callback(self.on_books_changed)
+    
+    def register_lend_callback(self, fn: Callable[[OnLendBookRequestedCtx], None]):
+        self.register_callback(OnLendBookRequestedCtx.id, fn)
 
     def on_books_changed(self, ctx: OnObjectsChangedCtx):
         assert self.books_storage
         self.update_books(self.books_storage.objects)
+    
+    def on_book_lend(self, ctx: OnBookLendCtx):
+        self._run_callbacks(
+            OnLendBookRequestedCtx(
+                ctx.book,
+                ctx.book_id
+            )
+        )
 
     def _on_toggle(self, e):
         self.is_advanced_search = not self.is_advanced_search
@@ -489,6 +538,7 @@ class LibraryTab(ft.Container, CallbackMixin):
             book_row = BookRow(book, book_id=id)
             book_row.register_on_book_changed(self.on_book_change)
             book_row.register_on_book_remove(self.on_book_remove)
+            book_row.register_on_book_lend(self.on_book_lend)
             self.book_list_view.controls.append(book_row)
 
         self.library_content.content = self.book_list_view

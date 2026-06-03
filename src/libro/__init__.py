@@ -4,11 +4,9 @@ import flet as ft
 
 
 from .search.engine import BookSearchEngine
-from .storage.paths import LibroPaths
-from .model.book import BookEntry
-from .model.lending import LendingEntry
-from .model.statistics import Statistics
+from .model import BookEntry, LendingEntry, Statistics
 from .storage.json import JsonIdNumeralStorage, JsonFileStorage
+from .storage.paths import LibroPaths
 from .view.main import MainView
 
 
