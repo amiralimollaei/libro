@@ -5,7 +5,7 @@ Collage Project, Feature List:
 
 - [x] Json storage
 - [x] Logo Design
-- [x] Add/Remove Books with details and cover image
+- [x] Add/Remove books with details and cover image
 - [x] Track reading progress in the library
-- [ ] Lending Books
-- [ ] Statistics
+- [ ] Lending books from the library
+- [ ] Statistics for reading/lending books
