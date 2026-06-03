@@ -3,7 +3,7 @@ from typing import Sequence
 
 
 class LibroPaths:
-    _root = Path("~/.libro")
+    _root = Path.home() / ".libro"
 
     # ---- configuration ----
     @classmethod
