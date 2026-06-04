@@ -39,3 +39,6 @@ copyright = "Copyright (C) 2023-2026 by AmirAli Mollaei"
 
 [tool.flet.app]
 path = "src"
+
+[tool.flet.android]
+split_per_abi = true
