@@ -54,19 +54,19 @@ class AddTab(AbstractTab):
                 )
                 for genre in Genre
             ],
-            width=160
+            expand=True
         )
         self.pages_input = ft.TextField(
             label="Pages",
             on_change=self.validate_pages_input,
             keyboard_type=ft.KeyboardType.NUMBER,
-            width=160
+            expand=True
         )
         self.publish_year_input = ft.TextField(
             label="Publish Year",
             on_change=self.validate_publish_year_input,
             keyboard_type=ft.KeyboardType.NUMBER,
-            width=160
+            expand=True
         )
         self.summary_input = ft.TextField(
             label="Book Summary (Optional)",
@@ -101,12 +101,12 @@ class AddTab(AbstractTab):
 
         self.main_column = ft.Column(
             [
+                ft.Row([self.title_input]),
                 ft.Row([
-                    self.title_input
+                    self.author_first_name_input, self.author_last_name_input
                 ]),
-                ft.Row([
-                    self.author_first_name_input, self.author_last_name_input, self.pages_input, self.publish_year_input, self.genre_input,
-                ]),
+                ft.Row([self.pages_input, self.publish_year_input]), 
+                ft.Row([self.genre_input]),
                 ft.Row(
                     [
                         self.summary_input,
@@ -120,6 +120,7 @@ class AddTab(AbstractTab):
                 ),
                 self.save_button,
             ],
+            scroll=ft.ScrollMode.AUTO,
             expand=True,
             spacing=10
         )
