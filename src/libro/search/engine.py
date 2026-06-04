@@ -1,14 +1,11 @@
-from ..model.book import BookEntry, BookFilter
-from ..storage.json import JsonIdNumeralStorage
+from ..model import BookEntry, BookFilter
+from ..storage import JsonIdNumeralStorage, LibroStorage
 
 
 class BookSearchEngine:
-    def __init__(self, storage: JsonIdNumeralStorage[BookEntry]):
-        self.storage = storage
-
     def search(self, filters: BookFilter) -> dict[int, BookEntry]:
         matched_books: dict[int, BookEntry] = dict()
-        for id, book in self.storage.objects.items():
+        for id, book in LibroStorage.get(JsonIdNumeralStorage[BookEntry], BookEntry).objects.items():
             if filters.year_min and filters.year_min > book.publish_year:
                 continue
             if filters.year_max and filters.year_max < book.publish_year:

@@ -2,12 +2,11 @@ from typing import Callable, Optional
 
 import flet as ft
 
-
-from ...storage.paths import LibroPaths
-from ...callbacks import CallbackMixin, CallbackContext
+from ...callbacks import CallbackContext, CallbackMixin
+from ...model import BookEntry, BookFilter, Genre
 from ...search.engine import BookSearchEngine
-from ...storage.json import JsonIdNumeralStorage, OnObjectsChangedCtx
-from ...model.book import BookEntry, BookFilter, Genre
+from ...storage import (JsonIdNumeralStorage, LibroPaths, LibroStorage,
+                        OnObjectsChangedCtx)
 
 
 class OnSearchChangedCtx(CallbackContext):
@@ -43,6 +42,7 @@ class OnBookLendCtx(CallbackContext):
         self.book = book
         self.book_id = book_id
 
+
 class OnLendBookRequestedCtx(CallbackContext):
     id = "on_lend_book_requested"
 
@@ -51,6 +51,7 @@ class OnLendBookRequestedCtx(CallbackContext):
 
         self.book = book
         self.book_id = book_id
+
 
 class OnBookRemoveCtx(CallbackContext):
     id = "on_book_remove"
@@ -266,96 +267,93 @@ class BookRow(ft.Dismissible, CallbackMixin):
         return f"{self.get_progress() * 100:.01f}%"
 
 
-class AdvancedSearchFiltersColumn(ft.Column):
-    def __init__(self, on_filters_change: Callable):
+class AdvancedSearchDrawer(ft.NavigationDrawer):
+    def __init__(self, on_filters_change):
         self.on_filters_change = on_filters_change
 
-        # Year range controls
         self.year_min_input = ft.TextField(
             label="Min Year",
-            width=120,
+            keyboard_type=ft.KeyboardType.NUMBER,
             on_change=self._on_filter_change,
-            keyboard_type=ft.KeyboardType.NUMBER
         )
+
         self.year_max_input = ft.TextField(
             label="Max Year",
-            width=120,
+            keyboard_type=ft.KeyboardType.NUMBER,
             on_change=self._on_filter_change,
-            keyboard_type=ft.KeyboardType.NUMBER
         )
 
-        # Page count range controls
         self.pages_min_input = ft.TextField(
             label="Min Pages",
-            width=120,
+            keyboard_type=ft.KeyboardType.NUMBER,
             on_change=self._on_filter_change,
-            keyboard_type=ft.KeyboardType.NUMBER
         )
+
         self.pages_max_input = ft.TextField(
             label="Max Pages",
-            width=120,
+            keyboard_type=ft.KeyboardType.NUMBER,
             on_change=self._on_filter_change,
-            keyboard_type=ft.KeyboardType.NUMBER
         )
 
-        # Genre dropdown
         self.genre_dropdown = ft.Dropdown(
             label="Genre",
-            width=150,
-            options=[ft.dropdown.Option("Any")] + [ft.dropdown.Option(genre.value) for genre in Genre],
             value="Any",
-            on_select=self._on_filter_change
-        )
-
-        # Reset button
-        self.reset_button = ft.ElevatedButton(
-            content="Reset Filters",
-            icon=ft.Icons.CLEAR,
-            on_click=self._on_reset
-        )
-
-        # Filter controls row
-        super().__init__(
-            [
-                ft.Text("Year:", weight=ft.FontWeight.BOLD),
-                ft.Row([
-                    self.year_min_input,
-                    ft.Icon(ft.Icons.ARROW_FORWARD, size=16),
-                    self.year_max_input,
-                ]),
-                ft.Text("Pages:", weight=ft.FontWeight.BOLD),
-                ft.Row([
-                    self.pages_min_input,
-                    ft.Icon(ft.Icons.ARROW_FORWARD, size=16),
-                    self.pages_max_input,
-                ]),
-                self.genre_dropdown,
-                self.reset_button,
+            options=[
+                ft.dropdown.Option("Any"),
+                *[
+                    ft.dropdown.Option(genre.value)
+                    for genre in Genre
+                ]
             ],
-            wrap=True,
-            spacing=10
+            on_select=self._on_filter_change,
         )
 
-    def _parse_int(self, value: str) -> Optional[int]:
+        super().__init__(
+            controls=[
+                ft.Container(height=16),
+                ft.Text(
+                    "Advanced Filters",
+                    size=20,
+                    weight=ft.FontWeight.BOLD,
+                ),
+                ft.Divider(),
+
+                self.year_min_input,
+                self.year_max_input,
+
+                self.pages_min_input,
+                self.pages_max_input,
+
+                self.genre_dropdown,
+
+                ft.ElevatedButton(
+                    "Reset Filters",
+                    icon=ft.Icons.CLEAR,
+                    on_click=self._on_reset,
+                ),
+            ]
+        )
+
+    def _parse_int(self, value):
         try:
             return int(value)
-        except (TypeError, ValueError):
+        except:
             return None
 
     @property
-    def year_min(self) -> Optional[int]:
+    def year_min(self):
         return self._parse_int(self.year_min_input.value)
 
     @property
-    def year_max(self) -> Optional[int]:
+    def year_max(self):
         return self._parse_int(self.year_max_input.value)
 
     @property
-    def pages_min(self) -> Optional[int]:
+    def pages_min(self):
         return self._parse_int(self.pages_min_input.value)
 
     @property
-    def pages_max(self) -> Optional[int]:
+    def pages_max(self):
         return self._parse_int(self.pages_max_input.value)
 
     def _on_filter_change(self, e):
@@ -367,6 +365,7 @@ class AdvancedSearchFiltersColumn(ft.Column):
         self.pages_min_input.value = ""
         self.pages_max_input.value = ""
         self.genre_dropdown.value = "Any"
+
         self.update()
         self.on_filters_change()
 
@@ -405,7 +404,6 @@ class LibraryTab(ft.Container, CallbackMixin):
             ),
         )
 
-        self.books_storage: JsonIdNumeralStorage | None = None
         self.search_engine: BookSearchEngine | None = None
 
         self.book_list_view = ft.ListView(
@@ -419,21 +417,13 @@ class LibraryTab(ft.Container, CallbackMixin):
         )
         self.search_input = ft.TextField(label="Search Your Library", on_change=self.on_search_change, expand=True)
 
-        self.is_advanced_search = False
         self.toggle_button = ft.IconButton(
             icon=ft.Icons.TUNE,
             tooltip="Advanced Filters",
-            on_click=self._on_toggle
+            on_click=self._on_toggle,
         )
 
-        self.advanced_search = AdvancedSearchFiltersColumn(on_filters_change=self.on_search_change)
-
-        self.advanced_search_container = ft.Container(
-            content=self.advanced_search,
-            width=0,
-            animate=ft.Animation(250, ft.AnimationCurve.EASE_IN_OUT),
-            clip_behavior=ft.ClipBehavior.HARD_EDGE,
-        )
+        self.advanced_search = AdvancedSearchDrawer(on_filters_change=self.on_search_change)
 
         self.main_book_view = ft.Column(
             [
@@ -445,30 +435,32 @@ class LibraryTab(ft.Container, CallbackMixin):
             expand=True,
         )
 
-        self.main_column = ft.Row(
+        self.main_column = ft.Column(
             [
-                self.main_book_view,
-                self.advanced_search_container
+                ft.Row(
+                    [
+                        self.search_input,
+                        self.toggle_button,
+                    ]
+                ),
+                self.library_content,
             ],
-            vertical_alignment=ft.CrossAxisAlignment.START
+            expand=True,
         )
+
+        LibroStorage.get(JsonIdNumeralStorage[BookEntry], BookEntry).register_change_callback(self.on_books_changed)
 
         super().__init__(content=self.main_column, **container_kwargs)
 
     def register_search_engine(self, search_engine):
         self.search_engine = search_engine
 
-    def register_book_storage(self, storage: JsonIdNumeralStorage[BookEntry]):
-        self.books_storage = storage
-        self.books_storage.register_change_callback(self.on_books_changed)
-    
     def register_lend_callback(self, fn: Callable[[OnLendBookRequestedCtx], None]):
         self.register_callback(OnLendBookRequestedCtx.id, fn)
 
     def on_books_changed(self, ctx: OnObjectsChangedCtx):
-        assert self.books_storage
-        self.update_books(self.books_storage.objects)
-    
+        self.update_books(LibroStorage.get(JsonIdNumeralStorage[BookEntry], BookEntry).objects)
+
     def on_book_lend(self, ctx: OnBookLendCtx):
         self._run_callbacks(
             OnLendBookRequestedCtx(
@@ -478,19 +470,10 @@ class LibraryTab(ft.Container, CallbackMixin):
         )
 
     def _on_toggle(self, e):
-        self.is_advanced_search = not self.is_advanced_search
+        page = self.page
 
-        self.advanced_search_container.width = (
-            320 if self.is_advanced_search else 0
-        )
-
-        self.toggle_button.icon = (
-            ft.Icons.UNFOLD_LESS
-            if self.is_advanced_search
-            else ft.Icons.TUNE
-        )
-
-        self.update()
+        # if page:
+        #    page.show_drawer(self.advanced_search)
 
     def get_book_filter(self) -> BookFilter:
         return BookFilter(
@@ -514,18 +497,15 @@ class LibraryTab(ft.Container, CallbackMixin):
         self._run_callbacks(OnSearchChangedCtx(filters))
 
         assert self.search_engine
-        assert self.books_storage
         matched_books = self.search_engine.search(filters)
 
         self.update_books(matched_books)
 
     def on_book_change(self, ctx: OnBookChangedCtx):
-        if self.books_storage:
-            self.books_storage.update_by_id(ctx.book_id, ctx.book)
+        LibroStorage.get(JsonIdNumeralStorage[BookEntry], BookEntry).update_by_id(ctx.book_id, ctx.book)
 
     def on_book_remove(self, ctx: OnBookRemoveCtx):
-        if self.books_storage:
-            self.books_storage.remove_by_id(ctx.book_id)
+        LibroStorage.get(JsonIdNumeralStorage[BookEntry], BookEntry).remove_by_id(ctx.book_id)
 
     def update_books(self, books: dict[int, BookEntry]):
         if not books:

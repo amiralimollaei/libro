@@ -5,9 +5,8 @@ from typing import Optional
 
 import dataclasses_json
 
-
 from ..model.person import Person
-from ..storage.storable import StorableObject
+from ..storage.json import StorableObject
 
 
 class Genre(StrEnum):

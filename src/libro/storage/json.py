@@ -1,70 +1,22 @@
+import dataclasses
 import hashlib
 import os
 from pathlib import Path
-from typing import Callable, Generic, Optional, Type, TypeVar
+from typing import Callable, Optional, Self, Type
 
-from libro.model.storage import IdNumeralStorageMeta
+import dataclasses_json
 
-from ..storage.storable import StorableObject
-from ..callbacks import CallbackMixin, CallbackContext, CallbackResult
-
-
-T = TypeVar("T", bound="StorableObject")
+from .base import T, StorableObject, StorageHandler
 
 
-class OnObjectAddCtx(Generic[T], CallbackContext):
-    id = "on_object_add"
-
-    def __init__(self, obj: T):
-        super().__init__()
-
-        self.obj: T = obj
+@dataclasses_json.dataclass_json(letter_case=dataclasses_json.LetterCase.CAMEL)  # pyright: ignore[reportArgumentType]
+@dataclasses.dataclass
+class IdNumeralStorageMeta(StorableObject):
+    class_name: str
+    last_id: int
 
 
-class OnObjectRemoveCtx(Generic[T], CallbackContext):
-    id = "on_object_remove"
-
-    def __init__(self, obj: T):
-        super().__init__()
-
-        self.obj: T = obj
-
-
-class OnObjectsChangedCtx(CallbackContext):
-    id = "on_objects_changed"
-
-    def __init__(self):
-        super().__init__()
-
-
-class StorageBase(Generic[T], CallbackMixin):
-    def __init__(self):
-        self.__init_callbacks__([
-            OnObjectAddCtx.id,
-            OnObjectRemoveCtx.id,
-            OnObjectsChangedCtx.id
-        ])
-
-    def _notify_changed(self) -> CallbackResult:
-        return self._run_callbacks(OnObjectsChangedCtx())
-
-    def _notify_add(self, obj: T) -> CallbackResult:
-        return self._run_callbacks(OnObjectAddCtx[T](obj))
-
-    def _notify_remove(self, obj: T) -> CallbackResult:
-        return self._run_callbacks(OnObjectRemoveCtx[T](obj))
-
-    def register_add_callback(self, fn: Callable[[OnObjectAddCtx[T]], None]):
-        self.register_callback(OnObjectAddCtx.id, fn=fn)
-
-    def register_remove_callback(self, fn: Callable[[OnObjectRemoveCtx[T]], None]):
-        self.register_callback(OnObjectRemoveCtx.id, fn=fn)
-
-    def register_change_callback(self, fn: Callable[[OnObjectsChangedCtx], None]):
-        self.register_callback(OnObjectsChangedCtx.id, fn=fn)
-
-
-class JsonBlobStorage(StorageBase[T]):
+class JsonBlobStorage(StorageHandler[T]):
     def __init__(self, directory: Path, objects: Optional[list[T]] = None) -> None:
         super().__init__()
         directory.mkdir(parents=True, exist_ok=True)
@@ -95,20 +47,20 @@ class JsonBlobStorage(StorageBase[T]):
             path.write_bytes(json_data)
 
     @classmethod
-    def from_directory(cls, item_cls: Type[T], directory: Path) -> 'JsonBlobStorage[T]':
+    def from_path(cls, item_cls: Type[T], path: Path) -> Self:
         objects: list[T] = []
 
-        if not directory.exists():
-            return cls(directory)
+        if not path.exists():
+            return cls(path)
 
-        for path in directory.glob("*.json"):
-            obj = item_cls.from_json(path.read_bytes())
+        for _path in path.glob("*.json"):
+            obj = item_cls.from_json(_path.read_bytes())
             objects.append(obj)
 
-        return cls(directory, objects=objects)
+        return cls(path, objects=objects)
 
 
-class JsonIdNumeralStorage(StorageBase[T]):
+class JsonIdNumeralStorage(StorageHandler[T]):
     META_FILE = "storage.json"
 
     def __init__(self, directory: Path, objects: Optional[dict[int, T]] = None, meta: Optional[IdNumeralStorageMeta] = None) -> None:
@@ -139,17 +91,21 @@ class JsonIdNumeralStorage(StorageBase[T]):
 
     def update_by_id(self, id: int, obj: T):
         self.objects[id] = obj
-        self._save_object(id, obj)
         self._notify_changed()
+        self._save_object(id, obj)
 
     def get(self, id: int) -> Optional[T]:
         return self.objects[id] if id in self.objects.keys() else None
 
     def get_or_default(self, id: int, default: T) -> T:
-        return self.objects[id] if id in self.objects.keys() else default
+        if id not in self.objects.keys():
+            self.objects[id] = default
+        return self.objects[id]
 
     def compute_if_absent(self, id: int, fn: Callable[[], T]) -> T:
-        return self.objects[id] if id in self.objects.keys() else fn()
+        if id not in self.objects.keys():
+            self.objects[id] = fn()
+        return self.objects[id]
 
     def _save_object(self, id: int, obj: T):
         json_data = obj.to_json().encode("utf-8")
@@ -162,33 +118,34 @@ class JsonIdNumeralStorage(StorageBase[T]):
         self.meta_path.write_bytes(self.meta.to_json().encode("utf-8"))
 
     @classmethod
-    def from_directory(cls, item_cls: Type[T], directory: Path) -> 'JsonIdNumeralStorage[T]':
+    def from_path(cls, item_cls: Type[T], path: Path) -> Self:
         objects: dict[int, T] = dict()
 
-        if not directory.exists():
-            return cls(directory)
+        if not path.exists():
+            return cls(path)
 
-        meta_path = directory / cls.META_FILE
+        meta_path = path / cls.META_FILE
         if meta_path.exists():
             meta = IdNumeralStorageMeta.from_json(meta_path.read_bytes())
         else:
-            return cls(directory)
+            return cls(path)
         # assert meta.class_name == cls.__class__.__name__
 
-        for path in directory.glob("*.json"):
-            if path.name == cls.META_FILE:
+        for _path in path.glob("*.json"):
+            if _path.name == cls.META_FILE:
                 continue
             try:
-                id = int(path.name.split(".")[0])
+                id = int(_path.name.split(".")[0])
             except Exception:
                 continue
-            objects[id] = item_cls.from_json(path.read_bytes())
+            objects[id] = item_cls.from_json(_path.read_bytes())
 
-        return cls(directory, objects=objects, meta=meta)
+        return cls(path, objects=objects, meta=meta)
 
 
-class JsonFileStorage(Generic[T]):
+class JsonFileStorage(StorageHandler[T]):
     def __init__(self, path: Path, object: Optional[T] = None) -> None:
+        super().__init__()
         path.parent.mkdir(parents=True, exist_ok=True)
 
         self.path = path
@@ -200,6 +157,7 @@ class JsonFileStorage(Generic[T]):
 
     def update(self, obj: T):
         self.object = obj
+        self._notify_changed()
 
     def save(self):
         assert self.object is not None
@@ -207,7 +165,7 @@ class JsonFileStorage(Generic[T]):
         self.path.write_bytes(json_data)
 
     @classmethod
-    def from_directory(cls, item_cls: Type[T], path: Path) -> 'JsonFileStorage[T]':
+    def from_path(cls, item_cls: Type[T], path: Path) -> Self:
         object: Optional[T] = None
 
         if not path.exists():

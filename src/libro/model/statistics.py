@@ -2,8 +2,7 @@ import dataclasses
 
 import dataclasses_json
 
-
-from ..storage.storable import StorableObject
+from ..storage.json import StorableObject
 
 
 @dataclasses_json.dataclass_json(letter_case=dataclasses_json.LetterCase.CAMEL)  # pyright: ignore[reportArgumentType]

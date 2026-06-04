@@ -2,42 +2,46 @@ import os
 
 import flet as ft
 
-
-from .search.engine import BookSearchEngine
 from .model import BookEntry, LendingEntry, Statistics
-from .storage.json import JsonIdNumeralStorage, JsonFileStorage
-from .storage.paths import LibroPaths
+from .search.engine import BookSearchEngine
+from .storage import (JsonFileStorage, JsonIdNumeralStorage, LibroPaths,
+                      LibroStorage)
 from .view.main import MainView
 
 
 class Libro(MainView):
     def __init__(self):
-        super().__init__()
-
         self.app_page: ft.Page | None = None
 
-        self.books_storage = JsonIdNumeralStorage[BookEntry].from_directory(
+        LibroStorage.new(
+            storage_cls=JsonIdNumeralStorage[BookEntry],
             item_cls=BookEntry,
-            directory=LibroPaths.books()
+            path=LibroPaths.books()
         )
 
-        self.lending_storage = JsonIdNumeralStorage[LendingEntry].from_directory(
+        LibroStorage.new(
+            storage_cls=JsonIdNumeralStorage[LendingEntry],
             item_cls=LendingEntry,
-            directory=LibroPaths.lending()
+            path=LibroPaths.lending()
         )
 
-        self.statistics_storage = JsonFileStorage[Statistics].from_directory(
+        LibroStorage.new(
+            storage_cls=JsonFileStorage[Statistics],
             item_cls=Statistics,
             path=LibroPaths.statistics()
         )
 
-        self.book_search_engine = BookSearchEngine(self.books_storage)
+        self.book_search_engine = BookSearchEngine()
 
-        self.lib_tab.register_book_storage(self.books_storage)
+        super().__init__()
+
         self.lib_tab.register_search_engine(self.book_search_engine)
-        self.lib_tab.update_books(self.books_storage.objects)
-
+        self.lib_tab.update_books(Libro.get_book_storage().objects)
         self.add_tab.register_on_add_book_fn(self.on_add_book)
+
+    @staticmethod
+    def get_book_storage() -> JsonIdNumeralStorage[BookEntry]:
+        return LibroStorage.get(JsonIdNumeralStorage[BookEntry], BookEntry)
 
     def on_add_book(self, e):
         assert self.app_page
@@ -60,8 +64,9 @@ class Libro(MainView):
             self.app_page.show_dialog(banner)
             return
 
-        self.books_storage.add(book)
-        self.books_storage.save()
+        book_storage = Libro.get_book_storage()
+        book_storage.add(book)
+        book_storage.save()
 
         self.add_tab.reset()
 
@@ -86,7 +91,7 @@ class Libro(MainView):
         page.title = "Libro - Your Personal Library"
         page.vertical_alignment = ft.MainAxisAlignment.CENTER
         page.padding = ft.Padding.zero()
-        page.add(self)
+        page.add(ft.SafeArea(self, expand=True))
 
         self.app_page = page
 

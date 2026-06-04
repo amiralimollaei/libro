@@ -1,13 +1,11 @@
-from datetime import datetime
 import time
+from datetime import datetime
 
 import flet as ft
 
-
-from ...storage.json import JsonIdNumeralStorage, OnObjectsChangedCtx
-from ...storage.paths import LibroPaths
-from ...model.book import BookEntry
-from ...model.lending import LendingEntry
+from ...model import BookEntry, LendingEntry
+from ...storage import (JsonIdNumeralStorage, LibroPaths, LibroStorage,
+                        OnObjectsChangedCtx)
 
 
 class LendingBookRow(ft.Row):
@@ -138,9 +136,6 @@ class LendingBookRow(ft.Row):
 
 class LendingTab(ft.Container):
     def __init__(self, **container_kwargs):
-        self.lending_storage: JsonIdNumeralStorage[LendingEntry] | None = None
-        self.book_storage: JsonIdNumeralStorage[BookEntry] | None = None
-
         self.lending_list_view = ft.ListView(
             expand=True,
             spacing=10,
@@ -154,36 +149,38 @@ class LendingTab(ft.Container):
             spacing=10,
         )
 
+        LibroStorage.get(
+            JsonIdNumeralStorage[LendingEntry],
+            LendingEntry
+        ).register_change_callback(self.on_lending_changed)
+
         super().__init__(
             content=self.main_column,
             **container_kwargs,
         )
 
-    def register_lending_storage(self, storage: JsonIdNumeralStorage[LendingEntry],):
-        self.lending_storage = storage
-        self.lending_storage.register_change_callback(
-            self.on_lending_changed
-        )
-
-    def register_book_storage(self, storage: JsonIdNumeralStorage[BookEntry],):
-        self.book_storage = storage
-
     def on_lending_changed(self, ctx: OnObjectsChangedCtx):
-        assert self.lending_storage
         self.update_lending_entries(
-            self.lending_storage.objects
+            LibroStorage.get(
+                JsonIdNumeralStorage[LendingEntry],
+                LendingEntry
+            ).objects
         )
 
     def update_lending_entries(
         self,
         entries: dict[int, LendingEntry],
     ):
-        assert self.book_storage
         self.lending_list_view.controls = []
+
+        book_storage = LibroStorage.get(
+            JsonIdNumeralStorage[BookEntry],
+            BookEntry
+        )
 
         for lending_id, lending_entry in entries.items():
             book_id = lending_entry.book_id
-            book = self.book_storage.get(book_id)
+            book = book_storage.get(book_id)
             assert book, f"Invalid lending entry, tried to get {book_id=}, but none could be found."
             lending_row = LendingBookRow(
                 book=book,
