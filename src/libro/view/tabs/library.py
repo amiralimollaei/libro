@@ -131,6 +131,8 @@ class BookRow(ft.Dismissible, CallbackMixin):
                             style=ft.ButtonStyle(
                                 padding=0,
                             ),
+                            width=40,
+                            height=30,
                         ),
                         ft.ElevatedButton(
                             content="-1",
@@ -138,9 +140,11 @@ class BookRow(ft.Dismissible, CallbackMixin):
                             style=ft.ButtonStyle(
                                 padding=0,
                             ),
+                            width=40,
+                            height=30,
                         ),
                     ],
-                    spacing=10
+                    spacing=5
                 ),
                 ft.Row(
                     [
@@ -150,6 +154,8 @@ class BookRow(ft.Dismissible, CallbackMixin):
                             style=ft.ButtonStyle(
                                 padding=0,
                             ),
+                            width=40,
+                            height=30,
                         ),
                         ft.ElevatedButton(
                             content="+1",
@@ -157,17 +163,20 @@ class BookRow(ft.Dismissible, CallbackMixin):
                             style=ft.ButtonStyle(
                                 padding=0,
                             ),
+                            width=40,
+                            height=30,
                         ),
                     ],
-                    spacing=10
+                    spacing=5
                 )
-            ]
+            ],
+            spacing=5
         )
 
         self.lend_button = ft.TextButton(
-            content="Lend Book",
-            icon=ft.Icons.PERSON_ADD,
+            content="Lend",
             tooltip="Lend Book",
+            icon=ft.Icons.PERSON_ADD,
             on_click=self._lend_book,
         )
 
@@ -360,7 +369,7 @@ class AdvancedSearchDrawer(ft.NavigationDrawer):
                 ft.Container(
                     ft.Column(
                         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                        controls = [
+                        controls=[
                             ft.Text(
                                 "Advanced Filters",
                                 size=20,
