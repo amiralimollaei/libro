@@ -87,8 +87,8 @@ class Libro:
         self.add_tab.update()
 
     def app(self, page: ft.Page):
-        page.window.min_width = 1080
-        page.window.min_height = 720
+        page.window.min_width = 480
+        page.window.min_height = 480
 
         page.title = "Libro - Your Personal Library"
         page.vertical_alignment = ft.MainAxisAlignment.CENTER

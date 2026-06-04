@@ -86,42 +86,86 @@ class BookRow(ft.Dismissible, CallbackMixin):
         if book.cover:
             cover_src = LibroPaths.covers() / book.cover
 
-        cover = ft.Container(
-            width=self.COVER_WIDTH,
-            height=self.COVER_HEIGHT,
-            border_radius=8,
-            clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
-            bgcolor=ft.Colors.BLUE_GREY_700,
-            content=ft.Image(
-                src=str(cover_src)
-            )
+        self.page_text = ft.Text(
+            self.get_counter_text(),
+            color=ft.Colors.WHITE,
+            weight=ft.FontWeight.BOLD,
         )
 
-        self.page_text = ft.Text(self.get_counter_text())
+        cover = ft.Stack(
+            width=self.COVER_WIDTH,
+            height=self.COVER_HEIGHT,
+            controls=[
+                ft.Container(
+                    width=self.COVER_WIDTH,
+                    height=self.COVER_HEIGHT,
+                    border_radius=8,
+                    clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
+                    bgcolor=ft.Colors.BLUE_GREY_700,
+                    content=ft.Image(
+                        src=str(cover_src),
+                        fit=ft.BoxFit.COVER,
+                    ),
+                ),
+                ft.Container(
+                    width=self.COVER_WIDTH,
+                    height=self.COVER_HEIGHT,
+                    bgcolor=ft.Colors.with_opacity(0.5, ft.Colors.BLACK),
+                ),
+                ft.Container(
+                    width=self.COVER_WIDTH,
+                    height=self.COVER_HEIGHT,
+                    alignment=ft.Alignment.CENTER,
+                    content=self.page_text
+                ),
+            ],
+        )
 
-        self.page_counter_inputs = ft.Row(
+        self.page_counter_inputs = ft.Column(
             [
-                ft.TextButton(
-                    content="-5",
-                    on_click=self._decrement_page_5,
+                ft.Row(
+                    [
+                        ft.ElevatedButton(
+                            content="-5",
+                            on_click=self._decrement_page_5,
+                            style=ft.ButtonStyle(
+                                padding=0,
+                            ),
+                        ),
+                        ft.ElevatedButton(
+                            content="-1",
+                            on_click=self._decrement_page,
+                            style=ft.ButtonStyle(
+                                padding=0,
+                            ),
+                        ),
+                    ],
+                    spacing=10
                 ),
-                ft.TextButton(
-                    content="-1",
-                    on_click=self._decrement_page,
-                ),
-                self.page_text,
-                ft.TextButton(
-                    content="+1",
-                    on_click=self._increment_page,
-                ),
-                ft.TextButton(
-                    content="+5",
-                    on_click=self._increment_page_5,
-                ),
+                ft.Row(
+                    [
+                        ft.ElevatedButton(
+                            content="+5",
+                            on_click=self._increment_page_5,
+                            style=ft.ButtonStyle(
+                                padding=0,
+                            ),
+                        ),
+                        ft.ElevatedButton(
+                            content="+1",
+                            on_click=self._increment_page,
+                            style=ft.ButtonStyle(
+                                padding=0,
+                            ),
+                        ),
+                    ],
+                    spacing=10
+                )
             ]
         )
 
-        self.lend_button = ft.IconButton(
+        self.lend_button = ft.TextButton(
+            content="Lend Book",
             icon=ft.Icons.PERSON_ADD,
             tooltip="Lend Book",
             on_click=self._lend_book,
@@ -175,10 +219,11 @@ class BookRow(ft.Dismissible, CallbackMixin):
                                             ],
                                         ),
                                         ft.Column(
-                                            horizontal_alignment=ft.CrossAxisAlignment.END,
+                                            alignment=ft.MainAxisAlignment.END,
+                                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                                             controls=[
+                                                self.lend_button,
                                                 self.page_counter_inputs,
-                                                self.lend_button
                                             ],
                                         ),
                                     ],
@@ -273,25 +318,25 @@ class AdvancedSearchDrawer(ft.NavigationDrawer):
         self.on_filters_change = on_filters_change
 
         self.year_min_input = ft.TextField(
-            label="Min Year",
+            label="Minimum Year",
             keyboard_type=ft.KeyboardType.NUMBER,
             on_change=self._on_filter_change,
         )
 
         self.year_max_input = ft.TextField(
-            label="Max Year",
+            label="Maximum Year",
             keyboard_type=ft.KeyboardType.NUMBER,
             on_change=self._on_filter_change,
         )
 
         self.pages_min_input = ft.TextField(
-            label="Min Pages",
+            label="Minimum Pages",
             keyboard_type=ft.KeyboardType.NUMBER,
             on_change=self._on_filter_change,
         )
 
         self.pages_max_input = ft.TextField(
-            label="Max Pages",
+            label="Maximum Pages",
             keyboard_type=ft.KeyboardType.NUMBER,
             on_change=self._on_filter_change,
         )
@@ -307,13 +352,15 @@ class AdvancedSearchDrawer(ft.NavigationDrawer):
                 ]
             ],
             on_select=self._on_filter_change,
+            expand=True
         )
 
         super().__init__(
             controls=[
                 ft.Container(
                     ft.Column(
-                        [
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                        controls = [
                             ft.Text(
                                 "Advanced Filters",
                                 size=20,
@@ -327,8 +374,6 @@ class AdvancedSearchDrawer(ft.NavigationDrawer):
                             self.pages_min_input,
                             self.pages_max_input,
 
-                            self.genre_dropdown,
-
                             ft.ElevatedButton(
                                 "Reset Filters",
                                 icon=ft.Icons.CLEAR,
@@ -337,7 +382,8 @@ class AdvancedSearchDrawer(ft.NavigationDrawer):
                         ],
                         expand=True
                     ),
-                    expand=True
+                    expand=True,
+                    padding=ft.Padding.all(20)
                 ),
             ]
         )
