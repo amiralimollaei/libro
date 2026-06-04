@@ -116,7 +116,7 @@ class LendingDialog(ft.AlertDialog, CallbackMixin):
     def _on_date_selected(self, e):
         self.selected_date = e.control.value.date()
 
-        self.return_date_field.value = self.selected_date.isoformat()
+        self.return_date_field.value = self.selected_date.isoformat() # pyright: ignore[reportOptionalMemberAccess]
 
         self.update()
 

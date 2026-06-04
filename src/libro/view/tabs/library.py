@@ -2,6 +2,8 @@ from typing import Callable, Optional
 
 import flet as ft
 
+from libro.view.dalogs.advancedsearch import AdvancedSearchDialog
+
 from ...callbacks import CallbackContext, CallbackMixin
 from ...model import BookEntry, BookFilter, Genre
 from ...search.engine import BookSearchEngine
@@ -322,117 +324,6 @@ class BookRow(ft.Dismissible, CallbackMixin):
         return f"{self.get_progress() * 100:.01f}%"
 
 
-class AdvancedSearchDrawer(ft.NavigationDrawer):
-    def __init__(self, on_filters_change):
-        self.on_filters_change = on_filters_change
-
-        self.year_min_input = ft.TextField(
-            label="Minimum Year",
-            keyboard_type=ft.KeyboardType.NUMBER,
-            on_change=self._on_filter_change,
-        )
-
-        self.year_max_input = ft.TextField(
-            label="Maximum Year",
-            keyboard_type=ft.KeyboardType.NUMBER,
-            on_change=self._on_filter_change,
-        )
-
-        self.pages_min_input = ft.TextField(
-            label="Minimum Pages",
-            keyboard_type=ft.KeyboardType.NUMBER,
-            on_change=self._on_filter_change,
-        )
-
-        self.pages_max_input = ft.TextField(
-            label="Maximum Pages",
-            keyboard_type=ft.KeyboardType.NUMBER,
-            on_change=self._on_filter_change,
-        )
-
-        self.genre_dropdown = ft.Dropdown(
-            label="Genre",
-            value="Any",
-            options=[
-                ft.dropdown.Option("Any"),
-                *[
-                    ft.dropdown.Option(genre.value)
-                    for genre in Genre
-                ]
-            ],
-            on_select=self._on_filter_change,
-            expand=True
-        )
-
-        super().__init__(
-            controls=[
-                ft.Container(
-                    ft.Column(
-                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                        controls=[
-                            ft.Text(
-                                "Advanced Filters",
-                                size=20,
-                                weight=ft.FontWeight.BOLD,
-                            ),
-                            ft.Divider(),
-
-                            self.year_min_input,
-                            self.year_max_input,
-
-                            self.pages_min_input,
-                            self.pages_max_input,
-
-                            ft.ElevatedButton(
-                                "Reset Filters",
-                                icon=ft.Icons.CLEAR,
-                                on_click=self._on_reset,
-                            ),
-                        ],
-                        expand=True
-                    ),
-                    expand=True,
-                    padding=ft.Padding.all(20)
-                ),
-            ]
-        )
-
-    def _parse_int(self, value):
-        try:
-            return int(value)
-        except:
-            return None
-
-    @property
-    def year_min(self):
-        return self._parse_int(self.year_min_input.value)
-
-    @property
-    def year_max(self):
-        return self._parse_int(self.year_max_input.value)
-
-    @property
-    def pages_min(self):
-        return self._parse_int(self.pages_min_input.value)
-
-    @property
-    def pages_max(self):
-        return self._parse_int(self.pages_max_input.value)
-
-    def _on_filter_change(self, e):
-        self.on_filters_change()
-
-    def _on_reset(self, e):
-        self.year_min_input.value = ""
-        self.year_max_input.value = ""
-        self.pages_min_input.value = ""
-        self.pages_max_input.value = ""
-        self.genre_dropdown.value = "Any"
-
-        self.update()
-        self.on_filters_change()
-
-
 class LibraryTab(AbstractTab):
     def __init__(self, **container_kwargs):
         self.__init_callbacks__([
@@ -483,10 +374,10 @@ class LibraryTab(AbstractTab):
         self.toggle_button = ft.IconButton(
             icon=ft.Icons.TUNE,
             tooltip="Advanced Filters",
-            on_click=self._on_drawer_toggle,
+            on_click=self._on_advanced_search,
         )
-
-        self.advanced_search_drawer = AdvancedSearchDrawer(on_filters_change=self.on_search_change)
+        
+        self.advanced_search_dialog = AdvancedSearchDialog(self.on_search_change)
 
         self.main_book_view = ft.Column(
             [
@@ -516,7 +407,7 @@ class LibraryTab(AbstractTab):
         super().__init__(content=self.main_column, **container_kwargs)
 
     def register_page(self, page: ft.Page):
-        page.drawer = self.advanced_search_drawer
+        return
 
     def register_search_engine(self, search_engine):
         self.search_engine = search_engine
@@ -537,20 +428,20 @@ class LibraryTab(AbstractTab):
             )
         )
 
-    async def _on_drawer_toggle(self, e):
+    async def _on_advanced_search(self, e):
         page = self.page
 
         if page:
-            await page.show_drawer()
+            page.show_dialog(self.advanced_search_dialog)
 
     def get_book_filter(self) -> BookFilter:
         return BookFilter(
             query=self.search_input.value,
-            year_min=self.advanced_search_drawer.year_min,
-            year_max=self.advanced_search_drawer.year_max,
-            pages_min=self.advanced_search_drawer.pages_min,
-            pages_max=self.advanced_search_drawer.pages_max,
-            genre=self.advanced_search_drawer.genre_dropdown.value,
+            year_min=self.advanced_search_dialog.year_min,
+            year_max=self.advanced_search_dialog.year_max,
+            pages_min=self.advanced_search_dialog.pages_min,
+            pages_max=self.advanced_search_dialog.pages_max,
+            genre=self.advanced_search_dialog.genre_dropdown.value,
             # TODO: add the missing filters to the GUI
             include_title=True,
             include_author=True,
