@@ -126,7 +126,7 @@ class AddTab(AbstractTab):
 
         super().__init__(content=self.main_column, **container_kwargs)
 
-    def register(self, page: ft.Page):
+    def register_page(self, page: ft.Page):
         return
 
     def validate_title_input(self, e):

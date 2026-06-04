@@ -100,7 +100,7 @@ class Libro:
         self.lending_tab = builder.new_tab(LendingTab, label="Lending", icon=ft.Icons.OUTBOX)
         self.add_tab = builder.new_tab(AddTab, label="Add Book", icon=ft.Icons.ADD_CIRCLE)
 
-        self.lib_tab.register(page)
+        self.lib_tab.register_page(page)
         self.lib_tab.register_lend_callback(self.on_lend_book_requested)
         self.lib_tab.register_search_engine(self.book_search_engine)
         self.lib_tab.update_books(Libro.get_book_storage().objects)

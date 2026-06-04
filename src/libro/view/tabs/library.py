@@ -460,7 +460,7 @@ class LibraryTab(AbstractTab):
 
         super().__init__(content=self.main_column, **container_kwargs)
 
-    def register(self, page: ft.Page):
+    def register_page(self, page: ft.Page):
         page.drawer = self.advanced_search_drawer
 
     def register_search_engine(self, search_engine):

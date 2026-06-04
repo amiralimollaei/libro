@@ -160,7 +160,7 @@ class LendingTab(AbstractTab):
             **container_kwargs,
         )
 
-    def register(self, page: ft.Page):
+    def register_page(self, page: ft.Page):
         return
     
     def on_lending_changed(self, ctx: OnObjectsChangedCtx):
