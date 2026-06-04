@@ -7,6 +7,7 @@ from .search.engine import BookSearchEngine
 from .storage import (JsonFileStorage, JsonIdNumeralStorage, LibroPaths,
                       LibroStorage)
 from .view.builder import TabsBuilder
+from .view.dalogs.lending import LendingDialog
 from .view.tabs import AddTab, LendingTab, LibraryTab, OnLendBookRequestedCtx
 
 
@@ -35,10 +36,13 @@ class Libro:
         self.book_search_engine = BookSearchEngine()
 
     def on_lend_book_requested(self, ctx: OnLendBookRequestedCtx):
+        assert self.app_page
+
+        dialog = LendingDialog(book_title=ctx.book.title)
+        self.app_page.show_dialog(dialog=dialog)
         # TODO:
-        # 1- show lending dialog
-        # 2- create LendingEntry
-        # 3- add to lending storage
+        # 1- create LendingEntry
+        # 2- add to lending storage
         ...
 
     @staticmethod
@@ -84,8 +88,6 @@ class Libro:
             open=True,
         ))
 
-        self.add_tab.update()
-
     def app(self, page: ft.Page):
         page.window.min_width = 480
         page.window.min_height = 480
@@ -93,7 +95,7 @@ class Libro:
         page.title = "Libro - Your Personal Library"
         page.vertical_alignment = ft.MainAxisAlignment.CENTER
         page.padding = ft.Padding.zero()
-        
+
         builder = TabsBuilder()
 
         self.lib_tab = builder.new_tab(LibraryTab, label="Library", icon=ft.Icons.LIBRARY_BOOKS)
@@ -106,7 +108,7 @@ class Libro:
         self.lib_tab.update_books(Libro.get_book_storage().objects)
 
         self.add_tab.register_on_add_book_callback(self.on_add_book)
-        
+
         page.add(ft.SafeArea(builder.build(), expand=True))
 
         self.app_page = page

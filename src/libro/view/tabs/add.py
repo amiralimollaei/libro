@@ -26,7 +26,7 @@ class AddTab(AbstractTab):
     def __init__(self, **container_kwargs):
         # initialize our callbacks for the CallbackMixin
         self.__init_callbacks__([
-            "on_add_book",
+            OnAddBookCtx.id,
         ])
 
         self.title_input = ft.TextField(
@@ -34,14 +34,9 @@ class AddTab(AbstractTab):
             on_change=self.validate_title_input,
             expand=True
         )
-        self.author_first_name_input = ft.TextField(
-            label="Author First Name",
-            on_change=self.validate_first_name_input,
-            expand=True
-        )
-        self.author_last_name_input = ft.TextField(
-            label="Author Last Name",
-            on_change=self.validate_last_name_input,
+        self.author_name_input = ft.TextField(
+            label="Author",
+            on_change=self.validate_name_input,
             expand=True
         )
         self.genre_input = ft.Dropdown(
@@ -102,9 +97,7 @@ class AddTab(AbstractTab):
         self.main_column = ft.Column(
             [
                 ft.Row([self.title_input]),
-                ft.Row([
-                    self.author_first_name_input, self.author_last_name_input
-                ]),
+                ft.Row([self.author_name_input]),
                 ft.Row([self.pages_input, self.publish_year_input]), 
                 ft.Row([self.genre_input]),
                 ft.Row(
@@ -133,11 +126,8 @@ class AddTab(AbstractTab):
     def validate_title_input(self, e):
         self.title_input.border_color = None
 
-    def validate_first_name_input(self, e):
-        self.author_first_name_input.border_color = None
-
-    def validate_last_name_input(self, e):
-        self.author_last_name_input.border_color = None
+    def validate_name_input(self, e):
+        self.author_name_input.border_color = None
 
     def validate_genre_input(self, e):
         self.genre_input.border_color = None
@@ -154,7 +144,7 @@ class AddTab(AbstractTab):
         self.publish_year_input.value = re.sub(r'[^\d]', '', self.publish_year_input.value)
         try:
             year_num = int(self.publish_year_input.value)
-            assert year_num < datetime.now().year
+            assert year_num <= datetime.now().year
             self.publish_year_input.border_color = None
         except Exception:
             self.publish_year_input.border_color = ft.Colors.ERROR
@@ -162,8 +152,7 @@ class AddTab(AbstractTab):
     def reset(self):
         text_fileds = [
             self.title_input,
-            self.author_first_name_input,
-            self.author_last_name_input,
+            self.author_name_input,
             self.pages_input,
             self.summary_input
         ]
@@ -176,10 +165,8 @@ class AddTab(AbstractTab):
     def save(self, e):
         if not self.title_input.value:
             self.title_input.border_color = ft.Colors.ERROR
-        if not self.author_first_name_input.value:
-            self.author_first_name_input.border_color = ft.Colors.ERROR
-        if not self.author_last_name_input.value:
-            self.author_last_name_input.border_color = ft.Colors.ERROR
+        if not self.author_name_input.value:
+            self.author_name_input.border_color = ft.Colors.ERROR
         if not self.genre_input.value:
             self.genre_input.border_color = ft.Colors.ERROR
         if not self.pages_input.value:
@@ -193,15 +180,14 @@ class AddTab(AbstractTab):
         return ctx.result
 
     def register_on_add_book_callback(self, fn: Callable):
-        """alias for `self.register_callback("on_add_book", fn)`"""
-        self.register_callback("on_add_book", fn)
+        """alias for `self.register_callback(OnAddBookCtx.id, fn)`"""
+        self.register_callback(OnAddBookCtx.id, fn)
 
     def get_book_object(self):
         return BookEntry(
             title=self.title_input.value,
             author=Person(
-                first_name=self.author_first_name_input.value,
-                last_name=self.author_last_name_input.value
+                name=self.author_name_input.value,
             ),
             genre=Genre(self.genre_input.value),  # pyright: ignore[reportArgumentType]
             pages=int(self.pages_input.value),

@@ -1,6 +1,7 @@
 import dataclasses
 import time
 from datetime import datetime
+from typing import Optional
 
 import dataclasses_json
 
@@ -15,7 +16,8 @@ class LendingEntry(StorableObject):
     borrower: Person
     lent_date: float
     due_date: float
-    returned_time: float | None = None
+    returned_time: Optional[float] = None
+    note: Optional[str] = None
 
     @property
     def is_returned(self) -> bool:

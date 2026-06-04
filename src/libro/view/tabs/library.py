@@ -526,6 +526,8 @@ class LibraryTab(AbstractTab):
 
     def on_books_changed(self, ctx: OnObjectsChangedCtx):
         self.update_books(LibroStorage.get(JsonIdNumeralStorage[BookEntry], BookEntry).objects)
+        
+        self.update()
 
     def on_book_lend(self, ctx: OnBookLendCtx):
         self._run_callbacks(
