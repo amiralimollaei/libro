@@ -1,63 +1,44 @@
+from typing import TypeVar
+
 import flet as ft
 
-from .tabs import *
+from .tabs import AbstractTab
 
 
-class MainView(ft.Tabs):
-    def __init__(self, **tabs_kwargs):
-        self.lib_tab = LibraryTab()
-        self.lending_tab = LendingTab()
-        self.add_tab = AddTab()
+T = TypeVar("T", bound="AbstractTab")
 
-        self.bar = ft.TabBar(
-            tabs=[
-                ft.Tab(label="Library", icon=ft.Icons.LIBRARY_BOOKS),
-                ft.Tab(label="Lending", icon=ft.Icons.OUTBOX),
-                ft.Tab(label="Add Book", icon=ft.Icons.ADD_CIRCLE),
-            ]
-        )
 
-        self.bar_view = ft.TabBarView(
-            expand=True,
-            controls=[
-                ft.Container(
-                    alignment=ft.Alignment.CENTER,
-                    content=self.lib_tab,
-                    padding=ft.Padding(left=20, right=20, top=20, bottom=0)
-                ),
-                ft.Container(
-                    alignment=ft.Alignment.CENTER,
-                    content=self.lending_tab,
-                    padding=ft.Padding(left=20, right=20, top=20, bottom=0)
-                ),
-                ft.Container(
-                    alignment=ft.Alignment.CENTER,
-                    content=self.add_tab,
-                    padding=ft.Padding.all(20)
-                ),
-            ],
-        )
+class TabsBuilder:
+    def __init__(self):
+        self.tabs: list[tuple[AbstractTab, ft.Tab]] = []
 
-        self.lib_tab.register_lend_callback(
-            self.on_lend_book_requested
-        )
+    def build(self, **tabs_kwargs):
+        tabs = []
+        controls = []
+        for tab_content, tab in self.tabs:
+            controls.append(ft.Container(
+                alignment=ft.Alignment.CENTER,
+                content=tab_content,
+                padding=ft.Padding.all(20)
+            ))
+            tabs.append(tab)
 
-        super().__init__(
+        return ft.Tabs(
             length=3,
             expand=True,
             content=ft.Column(
                 expand=True,
                 controls=[
-                    self.bar,
-                    self.bar_view
+                    ft.TabBar(tabs=tabs),
+                    ft.TabBarView(expand=True, controls=controls)
                 ],
             ),
             **tabs_kwargs
         )
 
-    def on_lend_book_requested(self, ctx: OnLendBookRequestedCtx):
-        # TODO:
-        # 1- show lending dialog
-        # 2- create LendingEntry
-        # 3- add to lending storage
-        ...
+    def new_tab(self, tab_cls: type[T], label: str, icon: ft.IconData) -> T:
+        tab_obj = tab_cls()
+        self.tabs.append((
+            tab_obj, ft.Tab(label=label, icon=icon),
+        ))
+        return tab_obj

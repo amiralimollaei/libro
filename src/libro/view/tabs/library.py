@@ -7,6 +7,7 @@ from ...model import BookEntry, BookFilter, Genre
 from ...search.engine import BookSearchEngine
 from ...storage import (JsonIdNumeralStorage, LibroPaths, LibroStorage,
                         OnObjectsChangedCtx)
+from .base import AbstractTab
 
 
 class OnSearchChangedCtx(CallbackContext):
@@ -310,26 +311,33 @@ class AdvancedSearchDrawer(ft.NavigationDrawer):
 
         super().__init__(
             controls=[
-                ft.Container(height=16),
-                ft.Text(
-                    "Advanced Filters",
-                    size=20,
-                    weight=ft.FontWeight.BOLD,
-                ),
-                ft.Divider(),
+                ft.Container(
+                    ft.Column(
+                        [
+                            ft.Text(
+                                "Advanced Filters",
+                                size=20,
+                                weight=ft.FontWeight.BOLD,
+                            ),
+                            ft.Divider(),
 
-                self.year_min_input,
-                self.year_max_input,
+                            self.year_min_input,
+                            self.year_max_input,
 
-                self.pages_min_input,
-                self.pages_max_input,
+                            self.pages_min_input,
+                            self.pages_max_input,
 
-                self.genre_dropdown,
+                            self.genre_dropdown,
 
-                ft.ElevatedButton(
-                    "Reset Filters",
-                    icon=ft.Icons.CLEAR,
-                    on_click=self._on_reset,
+                            ft.ElevatedButton(
+                                "Reset Filters",
+                                icon=ft.Icons.CLEAR,
+                                on_click=self._on_reset,
+                            ),
+                        ],
+                        expand=True
+                    ),
+                    expand=True
                 ),
             ]
         )
@@ -370,7 +378,7 @@ class AdvancedSearchDrawer(ft.NavigationDrawer):
         self.on_filters_change()
 
 
-class LibraryTab(ft.Container, CallbackMixin):
+class LibraryTab(AbstractTab):
     def __init__(self, **container_kwargs):
         self.__init_callbacks__([
             OnSearchChangedCtx.id,
@@ -420,10 +428,10 @@ class LibraryTab(ft.Container, CallbackMixin):
         self.toggle_button = ft.IconButton(
             icon=ft.Icons.TUNE,
             tooltip="Advanced Filters",
-            on_click=self._on_toggle,
+            on_click=self._on_drawer_toggle,
         )
 
-        self.advanced_search = AdvancedSearchDrawer(on_filters_change=self.on_search_change)
+        self.advanced_search_drawer = AdvancedSearchDrawer(on_filters_change=self.on_search_change)
 
         self.main_book_view = ft.Column(
             [
@@ -452,6 +460,9 @@ class LibraryTab(ft.Container, CallbackMixin):
 
         super().__init__(content=self.main_column, **container_kwargs)
 
+    def register(self, page: ft.Page):
+        page.drawer = self.advanced_search_drawer
+
     def register_search_engine(self, search_engine):
         self.search_engine = search_engine
 
@@ -469,20 +480,20 @@ class LibraryTab(ft.Container, CallbackMixin):
             )
         )
 
-    def _on_toggle(self, e):
+    async def _on_drawer_toggle(self, e):
         page = self.page
 
-        # if page:
-        #    page.show_drawer(self.advanced_search)
+        if page:
+            await page.show_drawer()
 
     def get_book_filter(self) -> BookFilter:
         return BookFilter(
             query=self.search_input.value,
-            year_min=self.advanced_search.year_min,
-            year_max=self.advanced_search.year_max,
-            pages_min=self.advanced_search.pages_min,
-            pages_max=self.advanced_search.pages_max,
-            genre=self.advanced_search.genre_dropdown.value,
+            year_min=self.advanced_search_drawer.year_min,
+            year_max=self.advanced_search_drawer.year_max,
+            pages_min=self.advanced_search_drawer.pages_min,
+            pages_max=self.advanced_search_drawer.pages_max,
+            genre=self.advanced_search_drawer.genre_dropdown.value,
             # TODO: add the missing filters to the GUI
             include_title=True,
             include_author=True,

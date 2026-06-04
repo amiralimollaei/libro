@@ -3,10 +3,12 @@ from datetime import datetime
 from typing import Callable
 
 import flet as ft
+from flet import Page
 
-from ...callbacks import CallbackMixin, CallbackContext
+from ...callbacks import CallbackContext, CallbackMixin
+from ...model.book import BookEntry, Genre, Person
 from ...storage.paths import LibroPaths
-from ...model.book import Genre, Person, BookEntry
+from .base import AbstractTab
 
 
 class OnAddBookCtx(CallbackContext):
@@ -20,7 +22,7 @@ class OnAddBookCtx(CallbackContext):
         return self.event
 
 
-class AddTab(ft.Container, CallbackMixin):
+class AddTab(AbstractTab):
     def __init__(self, **container_kwargs):
         # initialize our callbacks for the CallbackMixin
         self.__init_callbacks__([
@@ -124,6 +126,9 @@ class AddTab(ft.Container, CallbackMixin):
 
         super().__init__(content=self.main_column, **container_kwargs)
 
+    def register(self, page: ft.Page):
+        return
+
     def validate_title_input(self, e):
         self.title_input.border_color = None
 
@@ -186,7 +191,7 @@ class AddTab(ft.Container, CallbackMixin):
 
         return ctx.result
 
-    def register_on_add_book_fn(self, fn: Callable):
+    def register_on_add_book_callback(self, fn: Callable):
         """alias for `self.register_callback("on_add_book", fn)`"""
         self.register_callback("on_add_book", fn)
 

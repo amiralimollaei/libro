@@ -6,10 +6,11 @@ from .model import BookEntry, LendingEntry, Statistics
 from .search.engine import BookSearchEngine
 from .storage import (JsonFileStorage, JsonIdNumeralStorage, LibroPaths,
                       LibroStorage)
-from .view.main import MainView
+from .view.main import TabsBuilder
+from .view.tabs import AddTab, LendingTab, LibraryTab, OnLendBookRequestedCtx
 
 
-class Libro(MainView):
+class Libro:
     def __init__(self):
         self.app_page: ft.Page | None = None
 
@@ -33,11 +34,12 @@ class Libro(MainView):
 
         self.book_search_engine = BookSearchEngine()
 
-        super().__init__()
-
-        self.lib_tab.register_search_engine(self.book_search_engine)
-        self.lib_tab.update_books(Libro.get_book_storage().objects)
-        self.add_tab.register_on_add_book_fn(self.on_add_book)
+    def on_lend_book_requested(self, ctx: OnLendBookRequestedCtx):
+        # TODO:
+        # 1- show lending dialog
+        # 2- create LendingEntry
+        # 3- add to lending storage
+        ...
 
     @staticmethod
     def get_book_storage() -> JsonIdNumeralStorage[BookEntry]:
@@ -82,7 +84,7 @@ class Libro(MainView):
             open=True,
         ))
 
-        self.update()
+        self.add_tab.update()
 
     def app(self, page: ft.Page):
         page.window.min_width = 1080
@@ -91,7 +93,21 @@ class Libro(MainView):
         page.title = "Libro - Your Personal Library"
         page.vertical_alignment = ft.MainAxisAlignment.CENTER
         page.padding = ft.Padding.zero()
-        page.add(ft.SafeArea(self, expand=True))
+        
+        builder = TabsBuilder()
+
+        self.lib_tab = builder.new_tab(LibraryTab, label="Library", icon=ft.Icons.LIBRARY_BOOKS)
+        self.lending_tab = builder.new_tab(LendingTab, label="Lending", icon=ft.Icons.OUTBOX)
+        self.add_tab = builder.new_tab(AddTab, label="Add Book", icon=ft.Icons.ADD_CIRCLE)
+
+        self.lib_tab.register(page)
+        self.lib_tab.register_lend_callback(self.on_lend_book_requested)
+        self.lib_tab.register_search_engine(self.book_search_engine)
+        self.lib_tab.update_books(Libro.get_book_storage().objects)
+
+        self.add_tab.register_on_add_book_callback(self.on_add_book)
+        
+        page.add(ft.SafeArea(builder.build(), expand=True))
 
         self.app_page = page
 

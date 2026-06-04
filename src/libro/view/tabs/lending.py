@@ -6,6 +6,7 @@ import flet as ft
 from ...model import BookEntry, LendingEntry
 from ...storage import (JsonIdNumeralStorage, LibroPaths, LibroStorage,
                         OnObjectsChangedCtx)
+from .base import AbstractTab
 
 
 class LendingBookRow(ft.Row):
@@ -134,7 +135,7 @@ class LendingBookRow(ft.Row):
         ]
 
 
-class LendingTab(ft.Container):
+class LendingTab(AbstractTab):
     def __init__(self, **container_kwargs):
         self.lending_list_view = ft.ListView(
             expand=True,
@@ -159,6 +160,9 @@ class LendingTab(ft.Container):
             **container_kwargs,
         )
 
+    def register(self, page: ft.Page):
+        return
+    
     def on_lending_changed(self, ctx: OnObjectsChangedCtx):
         self.update_lending_entries(
             LibroStorage.get(
