@@ -3,7 +3,7 @@ from typing import Callable
 
 import flet as ft
 
-from ...callbacks import CallbackMixin, CallbackContext
+from ...callbacks import CallbackContext, CallbackMixin
 
 
 class DialogClosedCtx(CallbackContext):
@@ -50,6 +50,7 @@ class LendingDialog(ft.AlertDialog, CallbackMixin):
         self.selected_time: time | None = None
 
         self.date_picker = ft.DatePicker(
+            first_date=datetime.today(),
             on_change=self._on_date_selected,
         )
 
@@ -106,17 +107,17 @@ class LendingDialog(ft.AlertDialog, CallbackMixin):
     @property
     def note(self) -> str:
         return self.note_input.value.strip()
-        
+
     def _pick_date(self, e):
         self.page.show_dialog(self.date_picker)
-    
+
     def _pick_time(self, e):
         self.page.show_dialog(self.time_picker)
 
     def _on_date_selected(self, e):
         self.selected_date = e.control.value.date()
 
-        self.return_date_field.value = self.selected_date.isoformat() # pyright: ignore[reportOptionalMemberAccess]
+        self.return_date_field.value = self.selected_date.isoformat()  # pyright: ignore[reportOptionalMemberAccess]
 
         self.update()
 
@@ -133,7 +134,7 @@ class LendingDialog(ft.AlertDialog, CallbackMixin):
         )
 
         self.update()
-    
+
     def _close(self, e):
         self.page.pop_dialog()
         self._run_callbacks(DialogClosedCtx())

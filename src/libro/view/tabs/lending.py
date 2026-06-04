@@ -44,7 +44,8 @@ class LendingBookRow(ft.Row):
             clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
             bgcolor=ft.Colors.BLUE_GREY_700,
             content=ft.Image(
-                src=str(cover_src)
+                src=str(cover_src),
+                fit=ft.BoxFit.COVER,
             )
         )
 
@@ -170,6 +171,7 @@ class LendingTab(AbstractTab):
                 LendingEntry
             ).objects
         )
+        self.update()
 
     def update_lending_entries(
         self,
@@ -197,5 +199,3 @@ class LendingTab(AbstractTab):
                 lending_row
             )
             pass
-
-        self.update()

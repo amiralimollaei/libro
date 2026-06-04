@@ -1,8 +1,9 @@
 import os
+import time
 
 import flet as ft
 
-from .model import BookEntry, LendingEntry, Statistics
+from .model import BookEntry, LendingEntry, Person, Statistics
 from .search.engine import BookSearchEngine
 from .storage import (JsonFileStorage, JsonIdNumeralStorage, LibroPaths,
                       LibroStorage)
@@ -38,16 +39,30 @@ class Libro:
     def on_lend_book_requested(self, ctx: OnLendBookRequestedCtx):
         assert self.app_page
 
-        dialog = LendingDialog(book_title=ctx.book.title)
-        self.app_page.show_dialog(dialog=dialog)
-        # TODO:
-        # 1- create LendingEntry
-        # 2- add to lending storage
-        ...
+        def on_lending_dialog_submit(dialog: LendingDialog):
+            lending_storage = self.get_lending_storage()
+            lending_storage.add(LendingEntry(
+                book_id=ctx.book_id,
+                borrower=Person(name=dialog.borrower),
+                lent_date=time.time(),
+                due_date=dialog.due_at.timestamp() # pyright: ignore[reportOptionalMemberAccess]
+            ))
+            lending_storage.save()
+
+        self.app_page.show_dialog(
+            LendingDialog(
+                book_title=ctx.book.title,
+                on_submit=on_lending_dialog_submit
+            )
+        )
 
     @staticmethod
     def get_book_storage() -> JsonIdNumeralStorage[BookEntry]:
         return LibroStorage.get(JsonIdNumeralStorage[BookEntry], BookEntry)
+
+    @staticmethod
+    def get_lending_storage() -> JsonIdNumeralStorage[LendingEntry]:
+        return LibroStorage.get(JsonIdNumeralStorage[LendingEntry], LendingEntry)
 
     def on_add_book(self, e):
         assert self.app_page
@@ -102,10 +117,11 @@ class Libro:
         self.lending_tab = builder.new_tab(LendingTab, label="Lending", icon=ft.Icons.OUTBOX)
         self.add_tab = builder.new_tab(AddTab, label="Add Book", icon=ft.Icons.ADD_CIRCLE)
 
-        self.lib_tab.register_page(page)
         self.lib_tab.register_lend_callback(self.on_lend_book_requested)
         self.lib_tab.register_search_engine(self.book_search_engine)
         self.lib_tab.update_books(Libro.get_book_storage().objects)
+
+        self.lending_tab.update_lending_entries(Libro.get_lending_storage().objects)
 
         self.add_tab.register_on_add_book_callback(self.on_add_book)
 
