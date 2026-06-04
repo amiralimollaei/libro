@@ -6,7 +6,7 @@ from .model import BookEntry, LendingEntry, Statistics
 from .search.engine import BookSearchEngine
 from .storage import (JsonFileStorage, JsonIdNumeralStorage, LibroPaths,
                       LibroStorage)
-from .view.main import TabsBuilder
+from .view.builder import TabsBuilder
 from .view.tabs import AddTab, LendingTab, LibraryTab, OnLendBookRequestedCtx
 
 
