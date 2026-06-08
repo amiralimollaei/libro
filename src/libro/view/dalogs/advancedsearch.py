@@ -89,7 +89,7 @@ class AdvancedSearchDialog(ft.AlertDialog, CallbackMixin):
                 ),
             ],
         )
-        
+
     def _close(self, e):
         self.page.pop_dialog()
         self._run_callbacks(DialogClosedCtx())
@@ -128,7 +128,7 @@ class AdvancedSearchDialog(ft.AlertDialog, CallbackMixin):
         self.pages_min_input.value = ""
         self.pages_max_input.value = ""
         self.genre_dropdown.value = "Any"
-    
+
     def _on_filter_change(self, e):
         self.on_filters_change(e)
 

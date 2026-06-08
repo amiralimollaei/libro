@@ -6,6 +6,7 @@ import flet as ft
 from ...model import BookEntry, LendingEntry
 from ...storage import (JsonIdNumeralStorage, LibroPaths, LibroStorage,
                         OnObjectsChangedCtx)
+from ..components import BookCover
 from .base import AbstractTab
 
 
@@ -33,20 +34,14 @@ class LendingBookRow(ft.Row):
             and lending_entry.due_date < time.time()
         )
 
-        cover_src = LibroPaths.assets() / "placeholder-cover.png"
+        cover_src = str(LibroPaths.assets() / "placeholder-cover.png")
         if book.cover:
-            cover_src = LibroPaths.covers() / book.cover
+            cover_src = str(LibroPaths.covers() / book.cover)
 
-        cover = ft.Container(
+        cover = BookCover(
+            cover_src=cover_src,
             width=self.COVER_WIDTH,
             height=self.COVER_HEIGHT,
-            border_radius=8,
-            clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
-            bgcolor=ft.Colors.BLUE_GREY_700,
-            content=ft.Image(
-                src=str(cover_src),
-                fit=ft.BoxFit.COVER,
-            )
         )
 
         due_date = datetime.fromtimestamp(
@@ -163,7 +158,7 @@ class LendingTab(AbstractTab):
 
     def register_page(self, page: ft.Page):
         return
-    
+
     def on_lending_changed(self, ctx: OnObjectsChangedCtx):
         self.update_lending_entries(
             LibroStorage.get(

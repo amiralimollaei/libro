@@ -98,7 +98,7 @@ class AddTab(AbstractTab):
             [
                 ft.Row([self.title_input]),
                 ft.Row([self.author_name_input]),
-                ft.Row([self.pages_input, self.publish_year_input]), 
+                ft.Row([self.pages_input, self.publish_year_input]),
                 ft.Row([self.genre_input]),
                 ft.Row(
                     [

@@ -12,6 +12,7 @@ from ...storage import (JsonIdNumeralStorage, LibroPaths, LibroStorage,
                         OnObjectsChangedCtx)
 from ..dalogs.advancedsearch import AdvancedSearchDialog
 from ..dalogs.bookdetails import BookDetailsDialog
+from ..components import BookCover
 from .base import AbstractTab
 
 
@@ -89,44 +90,17 @@ class BookRow(ft.Container, CallbackMixin):
         self.total_pages = book.pages
         self.current_page = book.current_page or 0
 
-        cover_src = LibroPaths.assets() / "placeholder-cover.png"
+        self.cover_src = str(LibroPaths.assets() / "placeholder-cover.png")
         if book.cover:
-            cover_src = LibroPaths.covers() / book.cover
+            self.cover_src = str(LibroPaths.covers() / book.cover)
 
-        self.page_text = ft.Text(
-            self.get_counter_text(),
-            color=ft.Colors.WHITE,
-            weight=ft.FontWeight.BOLD,
-        )
-
-        cover = ft.Stack(
+        self.cover = BookCover(
+            cover_src=self.cover_src,
+            overlay_text=self.get_counter_text(),
             width=self.COVER_WIDTH,
             height=self.COVER_HEIGHT,
-            controls=[
-                ft.Container(
-                    width=self.COVER_WIDTH,
-                    height=self.COVER_HEIGHT,
-                    border_radius=8,
-                    clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
-                    bgcolor=ft.Colors.BLUE_GREY_700,
-                    content=ft.Image(
-                        src=str(cover_src),
-                        fit=ft.BoxFit.COVER,
-                    ),
-                ),
-                ft.Container(
-                    width=self.COVER_WIDTH,
-                    height=self.COVER_HEIGHT,
-                    bgcolor=ft.Colors.with_opacity(0.5, ft.Colors.BLACK),
-                ),
-                ft.Container(
-                    width=self.COVER_WIDTH,
-                    height=self.COVER_HEIGHT,
-                    alignment=ft.Alignment.CENTER,
-                    content=self.page_text
-                ),
-            ],
         )
+        cover = self.cover
 
         self.page_counter_inputs = ft.Column(
             [
@@ -372,7 +346,7 @@ class BookRow(ft.Container, CallbackMixin):
             self._refresh_progress()
 
     def _refresh_progress(self):
-        self.page_text.value = self.get_counter_text()
+        self.cover.set_overlay_text(self.get_counter_text())
         self.progress_text.value = self.get_progress_text()
         self.progress_bar.value = self.get_progress()
         self._run_callbacks(OnBookChangedCtx(self.book, self.book_id))

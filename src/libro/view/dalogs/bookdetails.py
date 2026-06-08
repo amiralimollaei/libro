@@ -6,6 +6,7 @@ from ...callbacks import CallbackContext, CallbackMixin
 from ...model.book import BookEntry
 from ...model.statistics import BookStatisticsModel
 from ...storage.paths import LibroPaths
+from ..components import BookCover
 
 
 class DialogClosedCtx(CallbackContext):
@@ -39,24 +40,18 @@ class BookDetailsDialog(ft.AlertDialog, CallbackMixin):
         self.statistics = statistics or BookStatisticsModel(book_id=book_id)
 
         # book cover image
-        cover_src = LibroPaths.assets() / "placeholder-cover.png"
+        cover_src = str(LibroPaths.assets() / "placeholder-cover.png")
         if book.cover:
-            cover_src = LibroPaths.covers() / book.cover
+            cover_src = str(LibroPaths.covers() / book.cover)
 
-        book_cover = ft.Container(
+        book_cover = BookCover(
+            cover_src=cover_src,
             width=100,
             height=150,
-            border_radius=8,
-            clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
-            bgcolor=ft.Colors.BLUE_GREY_700,
-            content=ft.Image(
-                src=str(cover_src),
-                fit=ft.BoxFit.COVER,
-            ),
         )
 
         # book basic info
-        book_info_controls = [
+        book_info_controls: list[ft.Control] = [
             ft.Text(
                 book.title,
                 size=18,
@@ -132,8 +127,8 @@ class BookDetailsDialog(ft.AlertDialog, CallbackMixin):
             ],
         )
 
-        ## statistics
-        
+        # statistics
+
         stats_section = self._build_stats_section()
 
         # delete confirmation dialog
@@ -202,7 +197,6 @@ class BookDetailsDialog(ft.AlertDialog, CallbackMixin):
             ],
         )
 
-
     def _build_stats_section(self) -> ft.Column:
         """Build the statistics section with weekly/monthly stats and a bar chart."""
         controls: list[ft.Control] = [
@@ -268,7 +262,8 @@ class BookDetailsDialog(ft.AlertDialog, CallbackMixin):
                 ft.Icon(
                     ft.Icons.TRENDING_UP if stats.this_month_pages and stats.last_month_pages and stats.this_month_pages >= stats.last_month_pages else ft.Icons.TRENDING_DOWN,
                     size=16,
-                    color=ft.Colors.GREEN_400 if (stats.this_month_pages or 0) >= (stats.last_month_pages or 0) else ft.Colors.RED_400,
+                    color=ft.Colors.GREEN_400 if (stats.this_month_pages or 0) >= (
+                        stats.last_month_pages or 0) else ft.Colors.RED_400,
                     visible=stats.this_month_pages is not None and stats.last_month_pages is not None,
                 ),
                 comparison_text,
