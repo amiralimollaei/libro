@@ -211,8 +211,8 @@ class BookDetailsDialog(ft.AlertDialog, CallbackMixin):
         )
 
         # delete button
-        delete_button = ft.ElevatedButton(
-            "Remove from Library",
+        delete_button = ft.FilledButton(
+            "Remove Book",
             icon=ft.Icons.DELETE,
             bgcolor=ft.Colors.ERROR,
             color=ft.Colors.WHITE,
@@ -222,6 +222,7 @@ class BookDetailsDialog(ft.AlertDialog, CallbackMixin):
         # main content
         main_content = ft.Column(
             spacing=12,
+            scroll=ft.ScrollMode.AUTO,
             controls=[
                 ft.Row(
                     [
@@ -233,8 +234,6 @@ class BookDetailsDialog(ft.AlertDialog, CallbackMixin):
                 ),
                 progress_section,
                 stats_section,
-                ft.Divider(),
-                delete_button,
             ],
         )
 
@@ -246,9 +245,11 @@ class BookDetailsDialog(ft.AlertDialog, CallbackMixin):
             ),
             content=ft.Container(
                 width=500,
+                height=600,
                 content=main_content,
             ),
             actions=[
+                delete_button,
                 ft.FilledButton(
                     "Close",
                     on_click=self._close,
