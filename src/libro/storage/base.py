@@ -111,7 +111,7 @@ class LibroStorage:
         storage_cls: type[S],
         item_cls: type[T],
         path: Path,
-    ) -> None:
+    ) -> S:
         key = (storage_cls, item_cls)
 
         if key in LibroStorage._storages:
@@ -121,6 +121,7 @@ class LibroStorage:
             )
 
         LibroStorage._storages[key] = storage_cls.from_path(item_cls=item_cls, path=path)
+        return cast(S, LibroStorage._storages[key])
 
     @staticmethod
     def get(

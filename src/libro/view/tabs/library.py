@@ -1,15 +1,17 @@
+import time
 from typing import Callable, Optional
 
 import flet as ft
 
-from libro.view.dalogs.advancedsearch import AdvancedSearchDialog
-from libro.view.dalogs.bookdetails import BookDetailsDialog
-
+from ...asyncutils import DelayedTaskScheduler
 from ...callbacks import CallbackContext, CallbackMixin
-from ...model import BookEntry, BookFilter, Genre
+from ...model import (BookEntry, BookFilter, BookFinishedEvent, BookReadEvent,
+                      StatisticalEvent)
 from ...search.engine import BookSearchEngine
 from ...storage import (JsonIdNumeralStorage, LibroPaths, LibroStorage,
                         OnObjectsChangedCtx)
+from ..dalogs.advancedsearch import AdvancedSearchDialog
+from ..dalogs.bookdetails import BookDetailsDialog
 from .base import AbstractTab
 
 
@@ -75,6 +77,8 @@ class BookRow(ft.Container, CallbackMixin):
             OnBookRemoveCtx.id,
             OnBookLendCtx.id
         ])
+
+        self.scheduler = DelayedTaskScheduler()
 
         self.book = book
         self.book_id = book_id
@@ -263,7 +267,10 @@ class BookRow(ft.Container, CallbackMixin):
 
     def _on_book_click(self, e):
         """Open the book details dialog when the book row is clicked."""
-        dialog = BookDetailsDialog(self.book, self.book_id)
+        from ...callbacks.statistics import compute_book_statistics
+
+        stats = compute_book_statistics(self.book, self.book_id)
+        dialog = BookDetailsDialog(self.book, self.book_id, statistics=stats)
         dialog.register_on_delete_book(self._on_book_delete_confirmed)
 
         self.page.show_dialog(dialog)
@@ -284,28 +291,84 @@ class BookRow(ft.Container, CallbackMixin):
             )
         )
 
-    def _increment_page(self, e):
+    def _emit_page_read_event(self, old_page: int, new_page: int):
+        """Emit a BookReadEvent to the reading events storage.
+
+        Stores absolute page values so that delta can be computed
+        later as pages_read - previous_pages_read.
+        """
+        if new_page != old_page:
+            event = StatisticalEvent(
+                book_id=self.book_id,
+                timestamp=time.time(),
+                book_read=BookReadEvent(
+                    pages_read=new_page,        # absolute current page
+                    previous_pages_read=old_page  # absolute previous page
+                )
+            )
+            events_storage = LibroStorage.get(JsonIdNumeralStorage[StatisticalEvent], StatisticalEvent)
+            events_storage.add(event)
+            events_storage.save()
+            self._refresh_book_data()
+
+            # check if book is now finished
+            if new_page >= self.total_pages:
+                self._emit_book_finished_event()
+
+    def _refresh_book_data(self):
+        """Persist the current book state to the book storage."""
+        book_storage = LibroStorage.get(JsonIdNumeralStorage[BookEntry], BookEntry)
+        book_storage.update_by_id(self.book_id, self.book)
+
+    def _emit_book_finished_event(self):
+        """Emit a BookFinishedEvent when book is completed."""
+        # Calculate days_to_finish from total pages and estimated reading rate
+        # Assuming average reading rate of 30 pages per day
+        estimated_reading_rate = 30  # pages per day
+        days_to_finish = self.total_pages / estimated_reading_rate
+
+        event = StatisticalEvent(
+            book_id=self.book_id,
+            timestamp=time.time(),
+            book_finished=BookFinishedEvent(
+                total_pages=self.total_pages,
+                days_to_finish=days_to_finish
+            )
+        )
+        events_storage = LibroStorage.get(JsonIdNumeralStorage[StatisticalEvent], StatisticalEvent)
+        events_storage.add(event)
+        events_storage.save()
+
+    async def _increment_page(self, e):
         if (self.current_page + 1) <= self.total_pages:
+            old_page = self.current_page
             self.current_page += 1
             self.book.current_page = self.current_page
+            self._emit_page_read_event(old_page, self.current_page)
             self._refresh_progress()
 
-    def _increment_page_5(self, e):
+    async def _increment_page_5(self, e):
         if (self.current_page + 5) <= self.total_pages:
+            old_page = self.current_page
             self.current_page += 5
             self.book.current_page = self.current_page
+            self._emit_page_read_event(old_page, self.current_page)
             self._refresh_progress()
 
-    def _decrement_page(self, e):
+    async def _decrement_page(self, e):
         if (self.current_page - 1) >= 0:
+            old_page = self.current_page
             self.current_page -= 1
             self.book.current_page = self.current_page
+            self._emit_page_read_event(old_page, self.current_page)
             self._refresh_progress()
 
-    def _decrement_page_5(self, e):
+    async def _decrement_page_5(self, e):
         if (self.current_page - 5) >= 0:
+            old_page = self.current_page
             self.current_page -= 5
             self.book.current_page = self.current_page
+            self._emit_page_read_event(old_page, self.current_page)
             self._refresh_progress()
 
     def _refresh_progress(self):

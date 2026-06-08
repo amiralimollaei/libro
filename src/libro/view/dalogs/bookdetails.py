@@ -23,8 +23,10 @@ class OnDeleteBookCtx(CallbackContext):
 class BookDetailsDialog(ft.AlertDialog, CallbackMixin):
     """
     Dialog that displays book details, statistics, and delete option.
-    Shows pages read per day, progress per day, and estimated finish date.
+    Shows reading progress, weekly/monthly aggregates, and a bar chart.
     """
+
+    BAR_COLOR = ft.Colors.BLUE_400
 
     def __init__(self, book: BookEntry, book_id: int, statistics: Optional[BookStatisticsModel] = None):
         self.__init_callbacks__([
@@ -118,78 +120,9 @@ class BookDetailsDialog(ft.AlertDialog, CallbackMixin):
             ],
         )
 
-        # statistics section
-        stats_section = ft.Column(
-            spacing=8,
-            controls=[
-                ft.Divider(),
-                ft.Text(
-                    "Statistics",
-                    size=14,
-                    weight=ft.FontWeight.BOLD,
-                ),
-                ft.Column(
-                    spacing=6,
-                    controls=[
-                        ft.Row(
-                            [
-                                ft.Text("Pages per day:", size=12),
-                                ft.Text(
-                                    self.statistics.get_pages_read_per_day_display(),
-                                    size=12,
-                                    color=ft.Colors.OUTLINE,
-                                ),
-                            ],
-                            expand=True,
-                        ),
-                        ft.Row(
-                            [
-                                ft.Text("Progress per day:", size=12),
-                                ft.Text(
-                                    self.statistics.get_progress_per_day_display(),
-                                    size=12,
-                                    color=ft.Colors.OUTLINE,
-                                ),
-                            ],
-                            expand=True,
-                        ),
-                        ft.Row(
-                            [
-                                ft.Text("Est. finish date:", size=12),
-                                ft.Text(
-                                    self.statistics.get_estimated_finish_date_display(),
-                                    size=12,
-                                    color=ft.Colors.OUTLINE,
-                                ),
-                            ],
-                            expand=True,
-                        ),
-                        ft.Row(
-                            [
-                                ft.Text("Reading time:", size=12),
-                                ft.Text(
-                                    self.statistics.get_reading_time_display(),
-                                    size=12,
-                                    color=ft.Colors.OUTLINE,
-                                ),
-                            ],
-                            expand=True,
-                        ),
-                        ft.Row(
-                            [
-                                ft.Text("Days reading:", size=12),
-                                ft.Text(
-                                    self.statistics.get_days_reading_display(),
-                                    size=12,
-                                    color=ft.Colors.OUTLINE,
-                                ),
-                            ],
-                            expand=True,
-                        ),
-                    ],
-                ),
-            ],
-        )
+        ## statistics
+        
+        stats_section = self._build_stats_section()
 
         # delete confirmation dialog
         self.delete_confirm_dialog = ft.AlertDialog(
@@ -214,7 +147,7 @@ class BookDetailsDialog(ft.AlertDialog, CallbackMixin):
         delete_button = ft.FilledButton(
             "Remove Book",
             icon=ft.Icons.DELETE,
-            bgcolor=ft.Colors.ERROR,
+            bgcolor=ft.Colors.RED_400,
             color=ft.Colors.WHITE,
             on_click=self._on_delete_click,
         )
@@ -253,6 +186,150 @@ class BookDetailsDialog(ft.AlertDialog, CallbackMixin):
                 ft.FilledButton(
                     "Close",
                     on_click=self._close,
+                ),
+            ],
+        )
+
+
+    def _build_stats_section(self) -> ft.Column:
+        """Build the statistics section with weekly/monthly stats and a bar chart."""
+        controls: list[ft.Control] = [
+            ft.Divider(),
+            ft.Text("Statistics", size=14, weight=ft.FontWeight.BOLD),
+        ]
+
+        # weekly/monthly summary
+        controls.append(self._build_period_summary_row())
+
+        # monthly comparison
+        controls.append(self._build_comparison_row())
+
+        # bar chart (weekly)
+        chart = self._build_bar_chart()
+        if chart is not None:
+            controls.append(ft.Text("Weekly Reading", size=12, weight=ft.FontWeight.BOLD))
+            controls.append(chart)
+            controls.append(ft.Container(height=4))
+
+        # reading pace
+        controls.append(ft.Divider(height=1))
+        controls.append(self._build_pace_row())
+
+        return ft.Column(spacing=8, controls=controls)
+
+    def _build_period_summary_row(self) -> ft.Row:
+        """Row showing this week's pages and this month's pages + progress."""
+        stats = self.statistics
+
+        this_week_text = ft.Text(
+            f"This week: {stats.get_this_week_pages_display()}",
+            size=12,
+        )
+        this_month_text = ft.Text(
+            f"This month: {stats.get_this_month_pages_display()}",
+            size=12,
+        )
+        month_progress_text = ft.Text(
+            f"Progress: {stats.get_this_month_progress_display()}",
+            size=12,
+            color=ft.Colors.OUTLINE,
+        )
+
+        return ft.Row(
+            spacing=16,
+            controls=[
+                ft.Column(spacing=2, controls=[this_week_text, this_month_text]),
+                ft.Column(spacing=2, controls=[month_progress_text]),
+            ],
+        )
+
+    def _build_comparison_row(self) -> ft.Row:
+        """Row showing comparison of this month vs last month."""
+        stats = self.statistics
+        comparison_text = ft.Text(
+            f"vs last month: {stats.get_monthly_comparison_display()}",
+            size=12,
+            color=ft.Colors.OUTLINE,
+        )
+        return ft.Row(
+            controls=[
+                ft.Icon(
+                    ft.Icons.TRENDING_UP if stats.this_month_pages and stats.last_month_pages and stats.this_month_pages >= stats.last_month_pages else ft.Icons.TRENDING_DOWN,
+                    size=16,
+                    color=ft.Colors.GREEN_400 if (stats.this_month_pages or 0) >= (stats.last_month_pages or 0) else ft.Colors.RED_400,
+                    visible=stats.this_month_pages is not None and stats.last_month_pages is not None,
+                ),
+                comparison_text,
+            ],
+        )
+
+    def _build_bar_chart(self) -> Optional[ft.Column]:
+        """
+        Build a horizontal bar chart from weekly_history data.
+        Each bar uses ProgressBar for natural horizontal expansion.
+        """
+        history = self.statistics.weekly_history
+        if not history:
+            return None
+
+        max_pages = max(entry.pages for entry in history)
+        if max_pages <= 0:
+            return None
+
+        bar_rows: list[ft.Control] = []
+        for entry in history:
+            fraction = entry.pages / max_pages
+
+            label = ft.Text(entry.label, size=10, width=55, text_align=ft.TextAlign.RIGHT)
+            page_count = ft.Text(str(entry.pages), size=10, color=ft.Colors.OUTLINE, width=30)
+
+            # Use a styled ProgressBar as the bar — naturally expands horizontally
+            bar = ft.ProgressBar(
+                value=fraction,
+                height=16,
+                border_radius=4,
+                expand=True,
+                bgcolor=ft.Colors.with_opacity(0.15, self.BAR_COLOR),
+                color=self.BAR_COLOR,
+            )
+
+            bar_rows.append(
+                ft.Row(
+                    spacing=6,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    controls=[label, bar, page_count],
+                )
+            )
+
+        return ft.Column(spacing=4, controls=bar_rows)
+
+    def _build_pace_row(self) -> ft.Row:
+        """Row showing reading pace (pages per day + days reading)."""
+        stats = self.statistics
+        return ft.Row(
+            spacing=16,
+            controls=[
+                ft.Column(
+                    spacing=2,
+                    controls=[
+                        ft.Text("Pages per day:", size=12),
+                        ft.Text(
+                            stats.get_pages_read_per_day_display(),
+                            size=12,
+                            color=ft.Colors.OUTLINE,
+                        ),
+                    ],
+                ),
+                ft.Column(
+                    spacing=2,
+                    controls=[
+                        ft.Text("Days reading:", size=12),
+                        ft.Text(
+                            stats.get_days_reading_display(),
+                            size=12,
+                            color=ft.Colors.OUTLINE,
+                        ),
+                    ],
                 ),
             ],
         )

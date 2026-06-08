@@ -1,9 +1,18 @@
+import logging
 import os
 import time
 
 import flet as ft
 
-from .model import BookEntry, LendingEntry, Person, Statistics
+from .callbacks.statistics import ensure_statistics_cache, on_reading_event_added, register_statistics_callbacks
+
+# Default logging configuration
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+from .model import BookEntry, BookLentEvent, BookReturnedEvent, LendingEntry, Person, Statistics, StatisticalEvent
 from .search.engine import BookSearchEngine
 from .storage import (JsonFileStorage, JsonIdNumeralStorage, LibroPaths,
                       LibroStorage)
@@ -34,20 +43,42 @@ class Libro:
             path=LibroPaths.statistics()
         )
 
+        LibroStorage.new(
+            storage_cls=JsonIdNumeralStorage[StatisticalEvent],
+            item_cls=StatisticalEvent,
+            path=LibroPaths.events()
+        ).register_add_callback(on_reading_event_added)
+
         self.book_search_engine = BookSearchEngine()
+
+        # register statistics event listeners and ensure cache is up-to-date
+        register_statistics_callbacks()
+        ensure_statistics_cache()
 
     def on_lend_book_requested(self, ctx: OnLendBookRequestedCtx):
         assert self.app_page
 
         def on_lending_dialog_submit(dialog: LendingDialog):
             lending_storage = self.get_lending_storage()
-            lending_storage.add(LendingEntry(
+            lend_id = lending_storage.add(LendingEntry(
                 book_id=ctx.book_id,
                 borrower=Person(name=dialog.borrower),
                 lent_date=time.time(),
                 due_date=dialog.due_at.timestamp()  # pyright: ignore[reportOptionalMemberAccess]
             ))
             lending_storage.save()
+            
+            # Emit BookLentEvent
+            event = StatisticalEvent(
+                book_id=ctx.book_id,
+                timestamp=time.time(),
+                book_lent=BookLentEvent(
+                    lend_id=lend_id,
+                    total_pages=ctx.book.pages
+                )
+            )
+            self.get_reading_events_storage().add(event)
+            self.get_reading_events_storage().save()
 
         self.app_page.show_dialog(
             LendingDialog(
@@ -56,6 +87,37 @@ class Libro:
             )
         )
 
+    def return_book(self, lending_id: int, book_id: int):
+        """Mark a lent book as returned and emit BookReturnedEvent."""
+        lending_storage = self.get_lending_storage()
+        lending_entry = lending_storage.get(lending_id)
+        
+        if lending_entry is None:
+            return
+        
+        # Calculate overdue_time if applicable
+        current_time = time.time()
+        overdue_time = None
+        if current_time > lending_entry.due_date:
+            overdue_time = current_time - lending_entry.due_date  # seconds overdue
+        
+        # Update the lending entry with returned time
+        lending_entry.returned_time = current_time
+        lending_storage.update_by_id(lending_id, lending_entry)
+        lending_storage.save()
+        
+        # Emit BookReturnedEvent
+        event = StatisticalEvent(
+            book_id=book_id,
+            timestamp=current_time,
+            book_returned=BookReturnedEvent(
+                lend_id=lending_id,
+                overdue_time=overdue_time
+            )
+        )
+        self.get_reading_events_storage().add(event)
+        self.get_reading_events_storage().save()
+
     @staticmethod
     def get_book_storage() -> JsonIdNumeralStorage[BookEntry]:
         return LibroStorage.get(JsonIdNumeralStorage[BookEntry], BookEntry)
@@ -63,6 +125,14 @@ class Libro:
     @staticmethod
     def get_lending_storage() -> JsonIdNumeralStorage[LendingEntry]:
         return LibroStorage.get(JsonIdNumeralStorage[LendingEntry], LendingEntry)
+
+    @staticmethod
+    def get_reading_events_storage() -> JsonIdNumeralStorage[StatisticalEvent]:
+        return LibroStorage.get(JsonIdNumeralStorage[StatisticalEvent], StatisticalEvent)
+
+    @staticmethod
+    def get_statistics_storage() -> JsonFileStorage[Statistics]:
+        return LibroStorage.get(JsonFileStorage[Statistics], Statistics)
 
     def on_add_book(self, e):
         assert self.app_page

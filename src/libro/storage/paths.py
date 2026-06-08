@@ -54,6 +54,11 @@ class LibroPaths:
         """Contains the statistics object"""
         return cls.root() / "statistics.json"
 
+    @classmethod
+    def events(cls) -> Path:
+        """Contains statistical events (reading, lending, etc.)"""
+        return cls.root() / "events"
+
 
 def clean_dict(d: dict):
     final_dict = {}

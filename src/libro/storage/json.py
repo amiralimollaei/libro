@@ -6,7 +6,7 @@ from typing import Callable, Optional, Self, Type
 
 import dataclasses_json
 
-from .base import T, StorableObject, StorageHandler
+from .base import StorableObject, StorageHandler, T
 
 
 @dataclasses_json.dataclass_json(letter_case=dataclasses_json.LetterCase.CAMEL)  # pyright: ignore[reportArgumentType]
@@ -171,6 +171,11 @@ class JsonFileStorage(StorageHandler[T]):
         if not path.exists():
             return cls(path, object)
 
-        object = item_cls.from_json(path.read_bytes())
+        try:
+            object = item_cls.from_json(path.read_bytes())
+        except (AttributeError, TypeError, KeyError) as exc:
+            # Migration: old-format data that no longer deserializes correctly.
+            # Return None so the caller (e.g. ensure_statistics_cache) rebuilds.
+            pass
 
         return cls(path, object)
