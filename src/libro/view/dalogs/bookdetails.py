@@ -56,32 +56,44 @@ class BookDetailsDialog(ft.AlertDialog, CallbackMixin):
         )
 
         # book basic info
+        book_info_controls = [
+            ft.Text(
+                book.title,
+                size=18,
+                weight=ft.FontWeight.BOLD,
+                max_lines=2,
+                overflow=ft.TextOverflow.ELLIPSIS,
+            ),
+            ft.Text(
+                book.author.full_name(),
+                size=14,
+            ),
+            ft.Text(
+                f"Published: {book.publish_year}",
+                size=12,
+                color=ft.Colors.OUTLINE,
+            ),
+            ft.Text(
+                f"Genre: {book.genre.label}",
+                size=12,
+                color=ft.Colors.OUTLINE,
+            ),
+        ]
+
+        if book.summary:
+            book_info_controls.append(
+                ft.Text(
+                    book.summary,
+                    size=12,
+                    italic=True,
+                    color=ft.Colors.ON_SURFACE_VARIANT,
+                ),
+            )
+
         book_info_column = ft.Column(
             spacing=8,
             expand=True,
-            controls=[
-                ft.Text(
-                    book.title,
-                    size=18,
-                    weight=ft.FontWeight.BOLD,
-                    max_lines=2,
-                    overflow=ft.TextOverflow.ELLIPSIS,
-                ),
-                ft.Text(
-                    book.author.full_name(),
-                    size=14,
-                ),
-                ft.Text(
-                    f"Published: {book.publish_year}",
-                    size=12,
-                    color=ft.Colors.OUTLINE,
-                ),
-                ft.Text(
-                    f"Genre: {book.genre.label}",
-                    size=12,
-                    color=ft.Colors.OUTLINE,
-                ),
-            ],
+            controls=book_info_controls,
         )
 
         # progress section
