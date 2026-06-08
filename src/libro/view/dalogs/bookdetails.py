@@ -62,16 +62,22 @@ class BookDetailsDialog(ft.AlertDialog, CallbackMixin):
             ft.Text(
                 book.author.full_name(),
                 size=14,
+                max_lines=1,
+                overflow=ft.TextOverflow.ELLIPSIS,
             ),
             ft.Text(
                 f"Published: {book.publish_year}",
                 size=12,
                 color=ft.Colors.OUTLINE,
+                max_lines=1,
+                overflow=ft.TextOverflow.ELLIPSIS,
             ),
             ft.Text(
                 f"Genre: {book.genre.label}",
                 size=12,
                 color=ft.Colors.OUTLINE,
+                max_lines=1,
+                overflow=ft.TextOverflow.ELLIPSIS,
             ),
         ]
 
@@ -82,6 +88,8 @@ class BookDetailsDialog(ft.AlertDialog, CallbackMixin):
                     size=12,
                     italic=True,
                     color=ft.Colors.ON_SURFACE_VARIANT,
+                    max_lines=4,
+                    overflow=ft.TextOverflow.ELLIPSIS,
                 ),
             )
 
@@ -230,19 +238,26 @@ class BookDetailsDialog(ft.AlertDialog, CallbackMixin):
         this_week_text = ft.Text(
             f"This week: {stats.get_this_week_pages_display()}",
             size=12,
+            max_lines=1,
+            overflow=ft.TextOverflow.ELLIPSIS,
         )
         this_month_text = ft.Text(
             f"This month: {stats.get_this_month_pages_display()}",
             size=12,
+            max_lines=1,
+            overflow=ft.TextOverflow.ELLIPSIS,
         )
         month_progress_text = ft.Text(
             f"Monthly Progress: {stats.get_this_month_progress_display()}",
             size=12,
             color=ft.Colors.OUTLINE,
+            max_lines=1,
+            overflow=ft.TextOverflow.ELLIPSIS,
         )
 
         return ft.Row(
             spacing=16,
+            wrap=True,
             controls=[
                 ft.Column(spacing=2, controls=[this_week_text, this_month_text]),
                 ft.Column(spacing=2, controls=[month_progress_text]),
@@ -256,8 +271,11 @@ class BookDetailsDialog(ft.AlertDialog, CallbackMixin):
             f"vs last month: {stats.get_monthly_comparison_display()}",
             size=12,
             color=ft.Colors.OUTLINE,
+            max_lines=1,
+            overflow=ft.TextOverflow.ELLIPSIS,
         )
         return ft.Row(
+            wrap=True,
             controls=[
                 ft.Icon(
                     ft.Icons.TRENDING_UP if stats.this_month_pages and stats.last_month_pages and stats.this_month_pages >= stats.last_month_pages else ft.Icons.TRENDING_DOWN,
@@ -315,6 +333,7 @@ class BookDetailsDialog(ft.AlertDialog, CallbackMixin):
         stats = self.statistics
         return ft.Row(
             spacing=16,
+            wrap=True,
             controls=[
                 ft.Column(
                     spacing=2,
@@ -324,6 +343,8 @@ class BookDetailsDialog(ft.AlertDialog, CallbackMixin):
                             stats.get_pages_read_per_day_display(),
                             size=12,
                             color=ft.Colors.OUTLINE,
+                            max_lines=1,
+                            overflow=ft.TextOverflow.ELLIPSIS,
                         ),
                     ],
                 ),
@@ -335,6 +356,8 @@ class BookDetailsDialog(ft.AlertDialog, CallbackMixin):
                             stats.get_days_reading_display(),
                             size=12,
                             color=ft.Colors.OUTLINE,
+                            max_lines=1,
+                            overflow=ft.TextOverflow.ELLIPSIS,
                         ),
                     ],
                 ),
