@@ -3,6 +3,7 @@ from typing import Callable, Optional
 import flet as ft
 
 from libro.view.dalogs.advancedsearch import AdvancedSearchDialog
+from libro.view.dalogs.bookdetails import BookDetailsDialog
 
 from ...callbacks import CallbackContext, CallbackMixin
 from ...model import BookEntry, BookFilter, Genre
@@ -64,7 +65,7 @@ class OnBookRemoveCtx(CallbackContext):
         self.book_id = book_id
 
 
-class BookRow(ft.Dismissible, CallbackMixin):
+class BookRow(ft.Container, CallbackMixin):
     COVER_WIDTH = 80
     COVER_HEIGHT = 120
 
@@ -195,71 +196,54 @@ class BookRow(ft.Dismissible, CallbackMixin):
         )
 
         super().__init__(
-            content=ft.Row(
-                [
-                    ft.Container(
-                        expand=True,
-                        padding=10,
-                        content=ft.Column(
-                            spacing=8,
-                            controls=[
-                                ft.Row(
-                                    vertical_alignment=ft.CrossAxisAlignment.START,
-                                    controls=[
-                                        cover,
-                                        ft.Column(
-                                            expand=True,
-                                            spacing=4,
-                                            controls=[
-                                                ft.Text(
-                                                    self.title,
-                                                    size=18,
-                                                    weight=ft.FontWeight.BOLD,
-                                                    max_lines=2,
-                                                    overflow=ft.TextOverflow.ELLIPSIS,
-                                                ),
-                                                ft.Text(
-                                                    self.author,
-                                                    size=14,
-                                                ),
-                                                ft.Text(
-                                                    str(self.year),
-                                                    size=13,
-                                                    color=ft.Colors.OUTLINE,
-                                                ),
-                                            ],
-                                        ),
-                                        ft.Column(
-                                            alignment=ft.MainAxisAlignment.END,
-                                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                                            controls=[
-                                                self.lend_button,
-                                                self.page_counter_inputs,
-                                            ],
-                                        ),
-                                    ],
-                                ),
-                                ft.Row([
-                                    self.progress_text,
-                                    self.progress_bar,
-                                ], expand=True),
-                            ],
-                        ),
-                    )
+            expand=True,
+            padding=10,
+            on_click=self._on_book_click,
+            content=ft.Column(
+                spacing=8,
+                controls=[
+                    ft.Row(
+                        vertical_alignment=ft.CrossAxisAlignment.START,
+                        controls=[
+                            cover,
+                            ft.Column(
+                                expand=True,
+                                spacing=4,
+                                controls=[
+                                    ft.Text(
+                                        self.title,
+                                        size=18,
+                                        weight=ft.FontWeight.BOLD,
+                                        max_lines=2,
+                                        overflow=ft.TextOverflow.ELLIPSIS,
+                                    ),
+                                    ft.Text(
+                                        self.author,
+                                        size=14,
+                                    ),
+                                    ft.Text(
+                                        str(self.year),
+                                        size=13,
+                                        color=ft.Colors.OUTLINE,
+                                    ),
+                                ],
+                            ),
+                            ft.Column(
+                                alignment=ft.MainAxisAlignment.END,
+                                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                                controls=[
+                                    self.lend_button,
+                                    self.page_counter_inputs,
+                                ],
+                            ),
+                        ],
+                    ),
+                    ft.Row([
+                        self.progress_text,
+                        self.progress_bar,
+                    ], expand=True),
                 ],
-                expand=True
             ),
-            dismiss_direction=ft.DismissDirection.END_TO_START,
-            background=ft.Container(
-                bgcolor=ft.Colors.RED,
-                alignment=ft.Alignment.CENTER_RIGHT,
-                padding=20,
-                content=ft.Icon(
-                    ft.Icons.DELETE,
-                    color=ft.Colors.WHITE,
-                ),
-            ),
-            on_dismiss=self._on_dismiss
         )
 
     def get_progress(self):
@@ -277,6 +261,21 @@ class BookRow(ft.Dismissible, CallbackMixin):
     def register_on_book_lend(self, fn: Callable[[OnBookLendCtx], None]):
         self.register_callback(OnBookLendCtx.id, fn)
 
+    def _on_book_click(self, e):
+        """Open the book details dialog when the book row is clicked."""
+        dialog = BookDetailsDialog(self.book, self.book_id)
+        dialog.register_on_delete_book(self._on_book_delete_confirmed)
+
+        self.page.show_dialog(dialog)
+
+    def _on_book_delete_confirmed(self, ctx):
+        """Handle book deletion from the dialog."""
+        from libro.view.dalogs.bookdetails import OnDeleteBookCtx
+        if isinstance(ctx, OnDeleteBookCtx):
+            # trigger the deletion through the library tab's on_book_remove handler
+            # this will callback be registered when the book row is created in update_books
+            self._run_callbacks(OnBookRemoveCtx(ctx.book_id))
+
     def _lend_book(self, e):
         self._run_callbacks(
             OnBookLendCtx(
@@ -284,9 +283,6 @@ class BookRow(ft.Dismissible, CallbackMixin):
                 self.book_id
             )
         )
-
-    def _on_dismiss(self, e):
-        self._run_callbacks(OnBookRemoveCtx(self.book_id))
 
     def _increment_page(self, e):
         if (self.current_page + 1) <= self.total_pages:
@@ -376,7 +372,7 @@ class LibraryTab(AbstractTab):
             tooltip="Advanced Filters",
             on_click=self._on_advanced_search,
         )
-        
+
         self.advanced_search_dialog = AdvancedSearchDialog(self.on_search_change)
 
         self.main_book_view = ft.Column(
@@ -417,7 +413,7 @@ class LibraryTab(AbstractTab):
 
     def on_books_changed(self, ctx: OnObjectsChangedCtx):
         self.update_books(LibroStorage.get(JsonIdNumeralStorage[BookEntry], BookEntry).objects)
-        
+
         self.update()
 
     def on_book_lend(self, ctx: OnBookLendCtx):
