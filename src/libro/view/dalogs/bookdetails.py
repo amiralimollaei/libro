@@ -230,7 +230,7 @@ class BookDetailsDialog(ft.AlertDialog, CallbackMixin):
             size=12,
         )
         month_progress_text = ft.Text(
-            f"Progress: {stats.get_this_month_progress_display()}",
+            f"Monthly Progress: {stats.get_this_month_progress_display()}",
             size=12,
             color=ft.Colors.OUTLINE,
         )

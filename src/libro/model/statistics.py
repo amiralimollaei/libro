@@ -210,7 +210,7 @@ class BookStatisticsModel:
         """Get formatted string for this month's progress percentage."""
         if self.this_month_progress is None:
             return "—"
-        return f"{self.this_month_progress * 100:.1f}%"
+        return f"{self.this_month_progress * 100:.1f}% or {self.this_month_pages} pages"
 
     def get_monthly_comparison_display(self) -> str:
         """Get formatted string comparing this month to last month."""
