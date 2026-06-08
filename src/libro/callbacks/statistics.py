@@ -65,7 +65,7 @@ def on_reading_event_added(ctx: OnObjectAddCtx[StatisticalEvent]):
                 stats.pages_read_by_period[date_key] = entry
 
     elif event.book_finished is not None:
-        # increment books_finished_by_period for today
+        # increment books_finished_by_period for this month
         month_entry = stats.books_finished_by_period.get(
             month_key, MonthBookEntry()
         )
@@ -73,13 +73,6 @@ def on_reading_event_added(ctx: OnObjectAddCtx[StatisticalEvent]):
             month_entry.count += 1
             month_entry.book_ids.append(event.book_id)
         stats.books_finished_by_period[month_key] = month_entry
-
-        # add pages read for the finished book
-        entry = stats.pages_read_by_period.get(
-            date_key, PagesReadPeriodEntry()
-        )
-        entry.pages += event.book_finished.total_pages
-        stats.pages_read_by_period[date_key] = entry
 
     elif event.book_lent is not None:
         # increment books_lent_by_period
@@ -365,12 +358,6 @@ def rebuild_statistics_cache() -> Statistics:
                 month_entry.count += 1
                 month_entry.book_ids.append(event.book_id)
             stats.books_finished_by_period[month_key] = month_entry
-
-            entry = stats.pages_read_by_period.get(
-                date_key, PagesReadPeriodEntry()
-            )
-            entry.pages += event.book_finished.total_pages
-            stats.pages_read_by_period[date_key] = entry
 
         elif event.book_lent is not None:
             month_entry = stats.books_lent_by_period.get(

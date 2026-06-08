@@ -10,9 +10,9 @@ from ...model import (BookEntry, BookFilter, BookFinishedEvent, BookReadEvent,
 from ...search.engine import BookSearchEngine
 from ...storage import (JsonIdNumeralStorage, LibroPaths, LibroStorage,
                         OnObjectsChangedCtx)
+from ..components import BookCover
 from ..dalogs.advancedsearch import AdvancedSearchDialog
 from ..dalogs.bookdetails import BookDetailsDialog
-from ..components import BookCover
 from .base import AbstractTab
 
 
@@ -68,6 +68,18 @@ class OnBookRemoveCtx(CallbackContext):
         self.book_id = book_id
 
 
+class OnPageReadCtx(CallbackContext):
+    """Fired by BookRow when the user changes the page counter."""
+    id = "on_page_read"
+
+    def __init__(self, book_id: int, old_page: int, new_page: int, total_pages: int):
+        super().__init__()
+        self.book_id = book_id
+        self.old_page = old_page
+        self.new_page = new_page
+        self.total_pages = total_pages
+
+
 class BookRow(ft.Container, CallbackMixin):
     COVER_WIDTH = 80
     COVER_HEIGHT = 120
@@ -76,10 +88,9 @@ class BookRow(ft.Container, CallbackMixin):
         self.__init_callbacks__([
             OnBookChangedCtx.id,
             OnBookRemoveCtx.id,
-            OnBookLendCtx.id
+            OnBookLendCtx.id,
+            OnPageReadCtx.id,
         ])
-
-        self.scheduler = DelayedTaskScheduler()
 
         self.book = book
         self.book_id = book_id
@@ -239,6 +250,9 @@ class BookRow(ft.Container, CallbackMixin):
     def register_on_book_lend(self, fn: Callable[[OnBookLendCtx], None]):
         self.register_callback(OnBookLendCtx.id, fn)
 
+    def register_on_page_read(self, fn: Callable[[OnPageReadCtx], None]):
+        self.register_callback(OnPageReadCtx.id, fn)
+
     def _on_book_click(self, e):
         """Open the book details dialog when the book row is clicked."""
         from ...callbacks.statistics import compute_book_statistics
@@ -253,8 +267,6 @@ class BookRow(ft.Container, CallbackMixin):
         """Handle book deletion from the dialog."""
         from libro.view.dalogs.bookdetails import OnDeleteBookCtx
         if isinstance(ctx, OnDeleteBookCtx):
-            # trigger the deletion through the library tab's on_book_remove handler
-            # this will callback be registered when the book row is created in update_books
             self._run_callbacks(OnBookRemoveCtx(ctx.book_id))
 
     def _lend_book(self, e):
@@ -265,60 +277,12 @@ class BookRow(ft.Container, CallbackMixin):
             )
         )
 
-    def _emit_page_read_event(self, old_page: int, new_page: int):
-        """Emit a BookReadEvent to the reading events storage.
-
-        Stores absolute page values so that delta can be computed
-        later as pages_read - previous_pages_read.
-        """
-        if new_page != old_page:
-            event = StatisticalEvent(
-                book_id=self.book_id,
-                timestamp=time.time(),
-                book_read=BookReadEvent(
-                    pages_read=new_page,        # absolute current page
-                    previous_pages_read=old_page  # absolute previous page
-                )
-            )
-            events_storage = LibroStorage.get(JsonIdNumeralStorage[StatisticalEvent], StatisticalEvent)
-            events_storage.add(event)
-            events_storage.save()
-            self._refresh_book_data()
-
-            # check if book is now finished
-            if new_page >= self.total_pages:
-                self._emit_book_finished_event()
-
-    def _refresh_book_data(self):
-        """Persist the current book state to the book storage."""
-        book_storage = LibroStorage.get(JsonIdNumeralStorage[BookEntry], BookEntry)
-        book_storage.update_by_id(self.book_id, self.book)
-
-    def _emit_book_finished_event(self):
-        """Emit a BookFinishedEvent when book is completed."""
-        # Calculate days_to_finish from total pages and estimated reading rate
-        # Assuming average reading rate of 30 pages per day
-        estimated_reading_rate = 30  # pages per day
-        days_to_finish = self.total_pages / estimated_reading_rate
-
-        event = StatisticalEvent(
-            book_id=self.book_id,
-            timestamp=time.time(),
-            book_finished=BookFinishedEvent(
-                total_pages=self.total_pages,
-                days_to_finish=days_to_finish
-            )
-        )
-        events_storage = LibroStorage.get(JsonIdNumeralStorage[StatisticalEvent], StatisticalEvent)
-        events_storage.add(event)
-        events_storage.save()
-
     async def _increment_page(self, e):
         if (self.current_page + 1) <= self.total_pages:
             old_page = self.current_page
             self.current_page += 1
             self.book.current_page = self.current_page
-            self._emit_page_read_event(old_page, self.current_page)
+            self._run_callbacks(OnPageReadCtx(self.book_id, old_page, self.current_page, self.total_pages))
             self._refresh_progress()
 
     async def _increment_page_5(self, e):
@@ -326,7 +290,7 @@ class BookRow(ft.Container, CallbackMixin):
             old_page = self.current_page
             self.current_page += 5
             self.book.current_page = self.current_page
-            self._emit_page_read_event(old_page, self.current_page)
+            self._run_callbacks(OnPageReadCtx(self.book_id, old_page, self.current_page, self.total_pages))
             self._refresh_progress()
 
     async def _decrement_page(self, e):
@@ -334,7 +298,7 @@ class BookRow(ft.Container, CallbackMixin):
             old_page = self.current_page
             self.current_page -= 1
             self.book.current_page = self.current_page
-            self._emit_page_read_event(old_page, self.current_page)
+            self._run_callbacks(OnPageReadCtx(self.book_id, old_page, self.current_page, self.total_pages))
             self._refresh_progress()
 
     async def _decrement_page_5(self, e):
@@ -342,7 +306,7 @@ class BookRow(ft.Container, CallbackMixin):
             old_page = self.current_page
             self.current_page -= 5
             self.book.current_page = self.current_page
-            self._emit_page_read_event(old_page, self.current_page)
+            self._run_callbacks(OnPageReadCtx(self.book_id, old_page, self.current_page, self.total_pages))
             self._refresh_progress()
 
     def _refresh_progress(self):
@@ -363,6 +327,9 @@ class LibraryTab(AbstractTab):
             OnSearchChangedCtx.id,
             OnLendBookRequestedCtx.id
         ])
+
+        self._page_event_scheduler = DelayedTaskScheduler()
+        self._book_baseline_page: dict[int, int] = {}
 
         self.search_no_result_view = ft.Container(
             expand=True,
@@ -461,6 +428,72 @@ class LibraryTab(AbstractTab):
             )
         )
 
+    def on_page_read(self, ctx: OnPageReadCtx):
+        """Called by BookRow when the user changes the page counter.
+
+        Debounces event emission so that rapid clicks produce a single
+        BookReadEvent covering the net change from the first click.
+        """
+        if ctx.new_page == ctx.old_page:
+            return
+
+        # capture the first page value as the baseline for the delta
+        if ctx.book_id not in self._book_baseline_page:
+            self._book_baseline_page[ctx.book_id] = ctx.old_page
+
+        book_id = ctx.book_id
+        total_pages = ctx.total_pages
+        baseline = self._book_baseline_page[book_id]
+
+        async def _write_event():
+            book_storage = LibroStorage.get(JsonIdNumeralStorage[BookEntry], BookEntry)
+            current_book = book_storage.get(book_id)
+            if current_book is None:
+                return
+            pages_read = current_book.current_page or 0
+
+            event = StatisticalEvent(
+                book_id=book_id,
+                timestamp=time.time(),
+                book_read=BookReadEvent(
+                    pages_read=pages_read,
+                    previous_pages_read=baseline,
+                )
+            )
+            events_storage = LibroStorage.get(JsonIdNumeralStorage[StatisticalEvent], StatisticalEvent)
+            events_storage.add(event)
+            events_storage.save()
+
+            # reset baseline so the next burst of clicks starts fresh
+            self._book_baseline_page.pop(book_id, None)
+
+            # check if book is now finished
+            if pages_read >= total_pages:
+                self._emit_book_finished_event(book_id, total_pages)
+
+        self._page_event_scheduler.debounce(
+            10.0,
+            _write_event,
+            key=f"page_event_{book_id}",
+        )
+
+    def _emit_book_finished_event(self, book_id: int, total_pages: int):
+        """Emit a BookFinishedEvent when a book is completed."""
+        estimated_reading_rate = 30  # pages per day
+        days_to_finish = total_pages / estimated_reading_rate
+
+        event = StatisticalEvent(
+            book_id=book_id,
+            timestamp=time.time(),
+            book_finished=BookFinishedEvent(
+                total_pages=total_pages,
+                days_to_finish=days_to_finish
+            )
+        )
+        events_storage = LibroStorage.get(JsonIdNumeralStorage[StatisticalEvent], StatisticalEvent)
+        events_storage.add(event)
+        events_storage.save()
+
     async def _on_advanced_search(self, e):
         page = self.page
 
@@ -511,6 +544,7 @@ class LibraryTab(AbstractTab):
             book_row.register_on_book_changed(self.on_book_change)
             book_row.register_on_book_remove(self.on_book_remove)
             book_row.register_on_book_lend(self.on_book_lend)
+            book_row.register_on_page_read(self.on_page_read)
             self.book_list_view.controls.append(book_row)
 
         self.library_content.content = self.book_list_view

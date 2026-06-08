@@ -4,6 +4,7 @@ import time
 
 import flet as ft
 
+from .asyncutils import DelayedTaskScheduler
 from .callbacks.statistics import ensure_statistics_cache, on_reading_event_added, register_statistics_callbacks
 
 # Default logging configuration
@@ -18,7 +19,8 @@ from .storage import (JsonFileStorage, JsonIdNumeralStorage, LibroPaths,
                       LibroStorage)
 from .view.builder import TabsBuilder
 from .view.dalogs.lending import LendingDialog
-from .view.tabs import AddTab, LendingTab, LibraryTab, OnLendBookRequestedCtx
+from .view.tabs import (AddTab, LendingTab, LibraryTab,
+                        OnLendBookRequestedCtx, StatisticsTab)
 
 
 class Libro:
@@ -47,7 +49,7 @@ class Libro:
             storage_cls=JsonIdNumeralStorage[StatisticalEvent],
             item_cls=StatisticalEvent,
             path=LibroPaths.events()
-        ).register_add_callback(on_reading_event_added)
+        )
 
         self.book_search_engine = BookSearchEngine()
 
@@ -185,6 +187,7 @@ class Libro:
 
         self.lib_tab = builder.new_tab(LibraryTab, label="Library", icon=ft.Icons.LIBRARY_BOOKS)
         self.lending_tab = builder.new_tab(LendingTab, label="Lending", icon=ft.Icons.OUTBOX)
+        self.statistics_tab = builder.new_tab(StatisticsTab, label="Statistics", icon=ft.Icons.BAR_CHART)
         self.add_tab = builder.new_tab(AddTab, label="Add Book", icon=ft.Icons.ADD_CIRCLE)
 
         self.lib_tab.register_lend_callback(self.on_lend_book_requested)
@@ -197,11 +200,14 @@ class Libro:
 
         page.add(ft.SafeArea(builder.build(), expand=True))
 
+        self.statistics_tab._refresh_data()
+
         self.app_page = page
 
         # exit confirmation dialog
         def on_window_close(event: ft.WindowEvent):
             async def actually_close(e):
+                await DelayedTaskScheduler.flush_all()
                 await page.window.destroy()
 
             if event.type != ft.WindowEventType.CLOSE:
