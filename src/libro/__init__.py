@@ -176,14 +176,27 @@ class Libro:
         ))
 
     def app(self, page: ft.Page):
-        page.window.min_width = 480
+        page.window.width = 420
+        page.window.height = 800
+        page.window.min_width = 360
         page.window.min_height = 480
 
         page.title = "Libro - Your Personal Library"
         page.vertical_alignment = ft.MainAxisAlignment.CENTER
         page.padding = ft.Padding.zero()
 
-        builder = TabsBuilder()
+        # Material 3 theming for a native Android feel
+        page.theme_mode = ft.ThemeMode.SYSTEM
+        page.theme = ft.Theme(
+            color_scheme_seed="indigo",
+            use_material3=True,
+        )
+        page.dark_theme = ft.Theme(
+            color_scheme_seed="indigo",
+            use_material3=True,
+        )
+
+        builder = TabsBuilder(page)
 
         self.lib_tab = builder.new_tab(LibraryTab, label="Library", icon=ft.Icons.LIBRARY_BOOKS)
         self.lending_tab = builder.new_tab(LendingTab, label="Lending", icon=ft.Icons.OUTBOX)
@@ -199,8 +212,6 @@ class Libro:
         self.add_tab.register_on_add_book_callback(self.on_add_book)
 
         page.add(ft.SafeArea(builder.build(), expand=True))
-
-        self.statistics_tab._refresh_data()
 
         self.app_page = page
 

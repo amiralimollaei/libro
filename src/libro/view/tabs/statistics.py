@@ -29,7 +29,6 @@ class StatCard(ft.Container):
             padding=15,
             border_radius=12,
             bgcolor=ft.Colors.PRIMARY_CONTAINER,
-            expand=True,
             content=ft.Column(
                 spacing=4,
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -141,10 +140,10 @@ class StatisticsTab(AbstractTab):
 
         cards_row = ft.ResponsiveRow(
             controls=[
-                ft.Container(col={"sm": 6, "md": 3}, content=self.total_books_card),
-                ft.Container(col={"sm": 6, "md": 3}, content=self.total_pages_card),
-                ft.Container(col={"sm": 6, "md": 3}, content=self.books_lent_card),
-                ft.Container(col={"sm": 6, "md": 3}, content=self.overdue_card),
+                ft.Container(col={"xs": 6, "sm": 3, "md": 3, "lg": 3, "xl": 3}, content=self.total_books_card),
+                ft.Container(col={"xs": 6, "sm": 3, "md": 3, "lg": 3, "xl": 3}, content=self.total_pages_card),
+                ft.Container(col={"xs": 6, "sm": 3, "md": 3, "lg": 3, "xl": 3}, content=self.books_lent_card),
+                ft.Container(col={"xs": 6, "sm": 3, "md": 3, "lg": 3, "xl": 3}, content=self.overdue_card),
             ],
             spacing=10,
         )

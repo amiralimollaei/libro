@@ -8,14 +8,12 @@ import logging
 from datetime import datetime, timedelta
 from typing import Optional
 
-from ..model import (BookEntry, BookFinishedEvent, BookReadEvent,
-                     BookReturnedEvent, BookStatisticsModel,
-                     LendingStatusEntry, MonthBookEntry,
-                     PagesInLentPeriodEntry, PagesReadPeriodEntry,
+from ..model import (BookEntry, BookStatisticsModel, LendingStatusEntry,
+                     MonthBookEntry, PagesInLentPeriodEntry,
+                     PagesReadPeriodEntry, PeriodHistoryEntry,
                      StatisticalEvent, Statistics)
 from ..storage import (JsonFileStorage, JsonIdNumeralStorage, LibroStorage,
                        OnObjectAddCtx)
-
 
 logger = logging.getLogger(__name__)
 
@@ -144,7 +142,6 @@ def _compute_weekly_monthly_aggregates(
          this_week_progress, this_month_progress,
          weekly_history, monthly_history)
     """
-    from ..model.statistics import PeriodHistoryEntry
 
     # --- group deltas by ISO week and calendar month ---
     week_pages: dict[str, int] = {}
