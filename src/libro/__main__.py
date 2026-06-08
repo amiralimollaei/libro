@@ -1,3 +1,3 @@
-from . import main
+from libro import main
 
 main()
