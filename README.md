@@ -7,5 +7,7 @@ Collage Project, Feature List:
 - [x] Logo Design
 - [x] Add/Remove books with details and cover image
 - [x] Track reading progress in the library
-- [ ] Lending books from the library
-- [ ] Statistics for reading/lending books
+- [x] Lending books from the library
+- [x] Statistics for reading/lending books
+- [ ] Make sure the app is stable
+- [ ] Make sure there is no visual errors
