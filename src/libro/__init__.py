@@ -45,7 +45,7 @@ class Libro:
                 book_id=ctx.book_id,
                 borrower=Person(name=dialog.borrower),
                 lent_date=time.time(),
-                due_date=dialog.due_at.timestamp() # pyright: ignore[reportOptionalMemberAccess]
+                due_date=dialog.due_at.timestamp()  # pyright: ignore[reportOptionalMemberAccess]
             ))
             lending_storage.save()
 
@@ -128,6 +128,32 @@ class Libro:
         page.add(ft.SafeArea(builder.build(), expand=True))
 
         self.app_page = page
+
+        # exit confirmation dialog
+        def on_window_close(event: ft.WindowEvent):
+            async def actually_close(e):
+                await page.window.destroy()
+
+            if event.type != ft.WindowEventType.CLOSE:
+                return
+            dlg = ft.AlertDialog(
+                title=ft.Text("Exit"),
+                content=ft.Text("Are you sure you want to exit Libro?"),
+                actions=[
+                    ft.TextButton(
+                        "Cancel",
+                        on_click=lambda e: page.pop_dialog()
+                    ),
+                    ft.TextButton(
+                        "Exit",
+                        on_click=actually_close
+                    ),
+                ],
+            )
+            page.show_dialog(dlg)
+
+        page.window.prevent_close = True
+        page.window.on_event = on_window_close
 
     def run(self):
         ft.run(self.app, assets_dir=str(LibroPaths.assets().absolute()))
