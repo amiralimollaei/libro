@@ -145,7 +145,7 @@ class StatisticsTab(AbstractTab):
             spacing=10,
         )
 
-        # period sections 
+        # period sections
         self.pages_read_list = PeriodList(
             "Pages Read (Daily)", "No reading recorded yet."
         )
@@ -188,7 +188,7 @@ class StatisticsTab(AbstractTab):
 
     def refresh_data(self):
         """Load the statistics cache and update all UI elements.
-        
+
         Public method called by the controller when storage changes.
         """
         stats_storage: JsonFileStorage[Statistics] = LibroStorage.get(

@@ -4,7 +4,14 @@ import os
 import flet as ft
 
 from .asyncutils import DelayedTaskScheduler
-from .callbacks.statistics import ensure_statistics_cache, register_statistics_callbacks
+from .callbacks.statistics import (ensure_statistics_cache,
+                                   register_statistics_callbacks)
+from .controller import *
+from .model import *
+from .search.engine import BookSearchEngine
+from .storage import *
+from .view.builder import TabsBuilder
+from .view.tabs import *
 
 # Default logging configuration
 logging.basicConfig(
@@ -12,14 +19,6 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
-from .controller import (AddBookController, LendingController,
-                          LibraryController, StatisticsController)
-from .model import BookEntry, LendingEntry, Statistics, StatisticalEvent
-from .search.engine import BookSearchEngine
-from .storage import (JsonFileStorage, JsonIdNumeralStorage, LibroPaths,
-                      LibroStorage)
-from .view.builder import TabsBuilder
-from .view.tabs import (AddTab, LendingTab, LibraryTab, StatisticsTab)
 
 
 class Libro:
@@ -109,6 +108,52 @@ class Libro:
             use_material3=True,
         )
 
+        self.build_main_view(page)
+
+        self.app_page = page
+
+        # ---- Back / Close button handling ----
+
+        def _navigate_back_or_exit():
+            """If hidden tab is showing, go back to Library. Otherwise, show exit dialog."""
+            async def actually_close(e):
+                await DelayedTaskScheduler.flush_all()
+                await page.window.destroy()
+
+            dlg = ft.AlertDialog(
+                title=ft.Text("Exit"),
+                content=ft.Text("Are you sure you want to exit Libro?"),
+                actions=[
+                    ft.TextButton(
+                        "Cancel",
+                        on_click=lambda e: page.pop_dialog()
+                    ),
+                    ft.TextButton(
+                        "Exit",
+                        on_click=actually_close
+                    ),
+                ],
+            )
+            page.show_dialog(dlg)
+
+        # Android: hardware back button fires on_view_pop
+        def on_view_pop(e):
+            _navigate_back_or_exit()
+
+        page.on_view_pop = on_view_pop
+
+        # Desktop: window close button (X) fires on_event
+        def on_window_close(event: ft.WindowEvent):
+            if event.type != ft.WindowEventType.CLOSE:
+                return
+            _navigate_back_or_exit()
+
+        page.window.prevent_close = True
+        page.window.on_event = on_window_close
+        
+        self.app_page = page
+
+    def build_main_view(self, page: ft.Page):
         builder = TabsBuilder(page)
         self._builder = builder
 
@@ -164,52 +209,6 @@ class Libro:
         builder.set_fab(fab)
 
         page.add(ft.SafeArea(builder.build(on_fab_click=self._on_fab_click), expand=True))
-
-        self.app_page = page
-
-        # ---- Back / Close button handling ----
-
-        def _navigate_back_or_exit():
-            """If hidden tab is showing, go back to Library. Otherwise, show exit dialog."""
-            if self._builder.is_showing_hidden_tab():
-                self._builder.show_library_tab(self.lib_tab)
-                self._builder.select_nav_index(0)
-                return
-
-            async def actually_close(e):
-                await DelayedTaskScheduler.flush_all()
-                await page.window.destroy()
-
-            dlg = ft.AlertDialog(
-                title=ft.Text("Exit"),
-                content=ft.Text("Are you sure you want to exit Libro?"),
-                actions=[
-                    ft.TextButton(
-                        "Cancel",
-                        on_click=lambda e: page.pop_dialog()
-                    ),
-                    ft.TextButton(
-                        "Exit",
-                        on_click=actually_close
-                    ),
-                ],
-            )
-            page.show_dialog(dlg)
-
-        # Android: hardware back button fires on_view_pop
-        def on_view_pop(e):
-            _navigate_back_or_exit()
-
-        page.on_view_pop = on_view_pop
-
-        # Desktop: window close button (X) fires on_event
-        def on_window_close(event: ft.WindowEvent):
-            if event.type != ft.WindowEventType.CLOSE:
-                return
-            _navigate_back_or_exit()
-
-        page.window.prevent_close = True
-        page.window.on_event = on_window_close
 
     def run(self):
         ft.run(self.app, assets_dir=str(LibroPaths.assets().absolute()))

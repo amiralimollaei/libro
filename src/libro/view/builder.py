@@ -100,7 +100,7 @@ class TabsBuilder:
             switch_in_curve=ft.AnimationCurve.EASE_IN_OUT,
             switch_out_curve=ft.AnimationCurve.EASE_IN_OUT,
             expand=True,
-            #clip_behavior=ft.ClipBehavior.HARD_EDGE,
+            # clip_behavior=ft.ClipBehavior.HARD_EDGE,
         )
 
         # Wrap the switcher with proper padding
@@ -187,7 +187,7 @@ class TabsBuilder:
 
     def new_hidden_tab(self, tab_cls: type[T]) -> T:
         """Create a tab that is registered with the page but not shown in navigation bar.
-        
+
         Useful for tabs accessed via FAB or other non-navigation means.
         """
         tab_obj = tab_cls()
