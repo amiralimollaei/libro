@@ -1,14 +1,10 @@
-from typing import TYPE_CHECKING
-
 import flet as ft
 
 from ..model import BookEntry
-from ..storage import LibroStorage, JsonIdNumeralStorage
+from ..storage import JsonIdNumeralStorage, LibroStorage
+from ..view.builder import TabsBuilder
 from ..view.tabs.add import AddTab, OnAddBookCtx
 from .base import AbstractController
-
-if TYPE_CHECKING:
-    from ..view.builder import TabsBuilder
 
 
 class AddBookController(AbstractController):

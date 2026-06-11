@@ -8,10 +8,8 @@ T = TypeVar("T", bound="AbstractTab")
 
 
 class TabsBuilder:
-    """Builds an Android-style layout with AppBar, content body, FAB, and bottom NavigationBar.
-
-    --- View (MVC) ---
-    Exposes a clean public API so the Controller never needs to access private members.
+    """
+    Builds an Android-style layout with AppBar, content body, FAB, and bottom NavigationBar.
     """
 
     def __init__(self, page: ft.Page):

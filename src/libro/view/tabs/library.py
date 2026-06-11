@@ -3,9 +3,9 @@ from typing import Callable, Optional
 import flet as ft
 
 from ...callbacks import CallbackContext, CallbackMixin
-from ...model import (BookEntry, BookFilter)
+from ...model import BookEntry, BookFilter
 from ...search.engine import BookSearchEngine
-from ...storage import (JsonIdNumeralStorage, LibroPaths, LibroStorage)
+from ...storage.paths import LibroPaths
 from ..components import BookCover
 from ..dalogs.advancedsearch import AdvancedSearchDialog
 from ..dalogs.bookdetails import BookDetailsDialog
@@ -418,7 +418,7 @@ class LibraryTab(AbstractTab):
 
     def on_search_change(self, e: Optional[ft.Event] = None):
         """Called when the search input or advanced filters change.
-        
+
         Fires OnSearchChangedCtx which the controller handles.
         """
         filters = self.get_book_filter()

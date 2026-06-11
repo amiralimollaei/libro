@@ -2,6 +2,8 @@ from ..model import BookEntry, BookFilter
 from ..storage import JsonIdNumeralStorage, LibroStorage
 
 
+# TODO: implement a proper search engine
+
 class BookSearchEngine:
     def search(self, filters: BookFilter) -> dict[int, BookEntry]:
         matched_books: dict[int, BookEntry] = dict()

@@ -4,11 +4,9 @@ from typing import Optional
 import flet as ft
 
 from ..asyncutils import DelayedTaskScheduler
-from ..model import (BookEntry, BookFinishedEvent, BookLentEvent, BookReadEvent,
-                     LendingEntry, Person, StatisticalEvent)
+from ..model import *
 from ..search.engine import BookSearchEngine
-from ..storage import (JsonFileStorage, JsonIdNumeralStorage, LibroStorage,
-                       OnObjectsChangedCtx)
+from ..storage import *
 from ..view.dalogs.lending import LendingDialog
 from ..view.tabs.library import (LibraryTab, OnBookChangedCtx, OnBookLendCtx,
                                  OnBookRemoveCtx, OnLendBookRequestedCtx,

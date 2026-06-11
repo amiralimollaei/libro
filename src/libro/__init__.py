@@ -136,12 +136,6 @@ class Libro:
             )
             page.show_dialog(dlg)
 
-        # Android: hardware back button fires on_view_pop
-        def on_view_pop(e):
-            _navigate_back_or_exit()
-
-        page.on_view_pop = on_view_pop
-
         # Desktop: window close button (X) fires on_event
         def on_window_close(event: ft.WindowEvent):
             if event.type != ft.WindowEventType.CLOSE:
@@ -150,7 +144,7 @@ class Libro:
 
         page.window.prevent_close = True
         page.window.on_event = on_window_close
-        
+
         self.app_page = page
 
     def build_main_view(self, page: ft.Page):

@@ -6,9 +6,9 @@ import flet as ft
 
 from ..callbacks.statistics import rebuild_statistics_cache
 from ..model import (BookEntry, BookReturnedEvent, LendingEntry,
-                     Statistics, StatisticalEvent)
-from ..storage import (JsonFileStorage, JsonIdNumeralStorage,
-                       LibroStorage, OnObjectsChangedCtx)
+                     StatisticalEvent, Statistics)
+from ..storage import (JsonFileStorage, JsonIdNumeralStorage, LibroStorage,
+                       OnObjectsChangedCtx)
 from ..view.tabs.lending import (LendingTab, OnLendingEditDueCtx,
                                  OnLendingRemoveCtx, OnLendingReturnCtx)
 from .base import AbstractController
@@ -52,7 +52,10 @@ class LendingController(AbstractController):
     # ---- Business logic ----
 
     def on_lending_return(self, ctx: OnLendingReturnCtx):
-        """Mark a lent book as returned and emit BookReturnedEvent."""
+        """
+        Mark a lent book as returned and emit BookReturnedEvent.
+        """
+
         lending_storage = self._lending_storage()
         entry = lending_storage.get(ctx.lending_id)
         if entry is None:
@@ -79,7 +82,12 @@ class LendingController(AbstractController):
         self._events_storage().save()
 
     def on_lending_edit_due(self, ctx: OnLendingEditDueCtx):
-        """Show a dialog to edit the due date/time of a lending entry."""
+        """
+        Show a dialog to edit the due date/time of a lending entry.
+        """
+
+        # TODO: extract this dialog to view.dialogs
+        
         current_due = datetime.fromtimestamp(ctx.lending_entry.due_date)
 
         date_picker = ft.DatePicker(
@@ -113,7 +121,7 @@ class LendingController(AbstractController):
         def on_date_selected(e):
             d = date_picker.value
             if d:
-                selected_date[0] = d.date() # pyright: ignore[reportAttributeAccessIssue]
+                selected_date[0] = d.date()  # pyright: ignore[reportAttributeAccessIssue]
                 date_field.value = selected_date[0].isoformat()
                 date_field.update()
 
@@ -164,11 +172,13 @@ class LendingController(AbstractController):
         self.page.show_dialog(dialog)
 
     def on_lending_remove(self, ctx: OnLendingRemoveCtx):
-        """Remove a lending entry without firing any statistical events.
+        """
+        Remove a lending entry and remove its corresponding statistical events.
 
         Scans and removes any StatisticalEvents referencing this lend_id,
         then deletes the lending entry and rebuilds the statistics cache.
         """
+
         def do_remove(e):
             self.page.pop_dialog()
 
@@ -220,6 +230,9 @@ class LendingController(AbstractController):
         self.page.show_dialog(dialog)
 
     def on_lending_changed(self, ctx: OnObjectsChangedCtx):
-        """Storage change listener — reload lending entries into the view."""
+        """
+        reload lending entries when the lending storage notifies us about a change.
+        """
+
         self.view.update_lending_entries(self._lending_storage().objects)
         self.view.update()
