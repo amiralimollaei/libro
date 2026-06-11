@@ -105,7 +105,7 @@ class TabsBuilder:
         content_container = ft.Container(
             alignment=ft.Alignment.TOP_CENTER,
             content=self._content_switcher,
-            padding=ft.Padding(16, 8, 16, 8),
+            padding=ft.Padding.all(16),
             expand=True,
         )
 

@@ -125,7 +125,7 @@ class BookRow(ft.Card, CallbackMixin):
             divisions=self.total_pages,
             label="{value}",
             on_change_end=self._on_slider_changed,
-            width=120,
+            expand=True
         )
 
         self.page_counter_inputs = ft.Column(
@@ -149,7 +149,6 @@ class BookRow(ft.Card, CallbackMixin):
                     alignment=ft.MainAxisAlignment.CENTER,
                     spacing=2,
                 ),
-                self.page_slider,
             ],
             spacing=0,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -161,16 +160,11 @@ class BookRow(ft.Card, CallbackMixin):
             on_click=self._lend_book,
         )
 
+        # Progress bar removed; slider will serve as progress indicator.
         self.progress_text = ft.Text(
             self.get_progress_text(),
             size=12,
             color=ft.Colors.OUTLINE,
-        )
-        self.progress_bar = ft.ProgressBar(
-            value=self.get_progress(),
-            height=8,
-            border_radius=4,
-            expand=True
         )
 
         super().__init__(
@@ -222,7 +216,7 @@ class BookRow(ft.Card, CallbackMixin):
                         ),
                         ft.Row([
                             self.progress_text,
-                            self.progress_bar,
+                            self.page_slider,
                         ], expand=True),
                     ],
                 ),
@@ -300,11 +294,9 @@ class BookRow(ft.Card, CallbackMixin):
     def _refresh_progress(self):
         self.cover.set_overlay_text(self.get_counter_text())
         self.progress_text.value = self.get_progress_text()
-        self.progress_bar.value = self.get_progress()
         self.page_counter_text.value = str(self.current_page)
         self.page_slider.value = float(self.current_page)
         self._run_callbacks(OnBookChangedCtx(self.book, self.book_id))
-
         self.update()
 
     def get_progress_text(self):
