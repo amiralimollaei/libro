@@ -33,37 +33,34 @@ def _month_str(timestamp: float) -> str:
 # callbacks related to statistics, these are defined here, so they can be registered in other classes
 
 def on_reading_event_added(ctx: OnObjectAddCtx[StatisticalEvent]):
-    """
-    Callback registered on the reading_events storage.
-    Incrementally updates the Statistics cache when a new event is added.
+    """Handle a new statistical event and update the cached statistics.
+
+    The logic mirrors the original implementation but ensures that the
+    ``books_lent`` count is incremented for *every* lend event, not just for
+    unique book IDs.
     """
     event = ctx.obj
     stats_storage: JsonFileStorage[Statistics] = LibroStorage.get(
         JsonFileStorage[Statistics], Statistics
     )
-    stats = stats_storage.get()
-    if stats is None:
-        stats = Statistics()
+    stats = stats_storage.get() or Statistics()
 
     date_key = _date_str(event.timestamp)
     month_key = _month_str(event.timestamp)
 
     if event.book_read is not None:
-        # delta may be negative and that's by design
         delta = event.book_read.pages_read - event.book_read.previous_pages_read
         if delta != 0:
             entry = stats.pages_read_by_period.get(
                 date_key, PagesReadPeriodEntry()
             )
             entry.pages += delta
-            # our daily progress shouldn't be negative
             if entry.pages <= 0:
                 del stats.pages_read_by_period[date_key]
             else:
                 stats.pages_read_by_period[date_key] = entry
 
     elif event.book_finished is not None:
-        # increment books_finished_by_period for this month
         month_entry = stats.books_finished_by_period.get(
             month_key, MonthBookEntry()
         )
@@ -73,16 +70,14 @@ def on_reading_event_added(ctx: OnObjectAddCtx[StatisticalEvent]):
         stats.books_finished_by_period[month_key] = month_entry
 
     elif event.book_lent is not None:
-        # increment books_lent_by_period
         month_entry = stats.books_lent_by_period.get(
             month_key, MonthBookEntry()
         )
+        month_entry.count += 1  # count every lend event
         if event.book_id not in month_entry.book_ids:
-            month_entry.count += 1
             month_entry.book_ids.append(event.book_id)
         stats.books_lent_by_period[month_key] = month_entry
 
-        # track pages in lent
         pages_entry = stats.pages_in_lent_by_period.get(
             month_key, PagesInLentPeriodEntry()
         )
@@ -94,7 +89,6 @@ def on_reading_event_added(ctx: OnObjectAddCtx[StatisticalEvent]):
         stats.pages_in_lent_by_period[month_key] = pages_entry
 
     elif event.book_returned is not None:
-        # update lending_status
         lend_id = event.book_returned.lend_id
         overdue = event.book_returned.overdue_time is not None
         stats.lending_status[lend_id] = LendingStatusEntry(
@@ -103,7 +97,6 @@ def on_reading_event_added(ctx: OnObjectAddCtx[StatisticalEvent]):
             overdue_days=int(event.book_returned.overdue_time // 86400) if event.book_returned.overdue_time else 0,
         )
 
-    # update timestamp and save
     stats.last_updated_timestamp = event.timestamp
     stats_storage.update(stats)
     stats_storage.save()
@@ -354,17 +347,17 @@ def rebuild_statistics_cache() -> Statistics:
             if event.book_id not in month_entry.book_ids:
                 month_entry.count += 1
                 month_entry.book_ids.append(event.book_id)
-            stats.books_finished_by_period[month_key] = month_entry
-
         elif event.book_lent is not None:
+            # Increment the total number of lend events for the month.
             month_entry = stats.books_lent_by_period.get(
                 month_key, MonthBookEntry()
             )
+            month_entry.count += 1
             if event.book_id not in month_entry.book_ids:
-                month_entry.count += 1
                 month_entry.book_ids.append(event.book_id)
             stats.books_lent_by_period[month_key] = month_entry
 
+            # track pages in lent
             pages_entry = stats.pages_in_lent_by_period.get(
                 month_key, PagesInLentPeriodEntry()
             )
@@ -373,6 +366,7 @@ def rebuild_statistics_cache() -> Statistics:
             pages_entry.avg_pages_per_book = (
                 pages_entry.total_pages / month_count if month_count > 0 else 0.0
             )
+            stats.pages_in_lent_by_period[month_key] = pages_entry
             stats.pages_in_lent_by_period[month_key] = pages_entry
 
         elif event.book_returned is not None:

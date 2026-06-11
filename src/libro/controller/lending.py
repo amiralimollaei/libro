@@ -86,89 +86,18 @@ class LendingController(AbstractController):
         Show a dialog to edit the due date/time of a lending entry.
         """
 
-        # TODO: extract this dialog to view.dialogs
-        
+        # Use extracted dialog component
+        from ..view.dalogs.editdatetime import EditDateTimeDialog
+
         current_due = datetime.fromtimestamp(ctx.lending_entry.due_date)
 
-        date_picker = ft.DatePicker(
-            first_date=datetime.today(),
-            on_change=None,
-            value=current_due,
-        )
-        time_picker = ft.TimePicker(
-            on_change=None,
-            value=current_due.time(),
-        )
-
-        selected_date = [current_due.date()]
-        selected_time = [current_due.time()]
-
-        date_field = ft.TextField(
-            label="Due Date",
-            read_only=True,
-            suffix_icon=ft.Icons.CALENDAR_MONTH,
-            value=selected_date[0].isoformat(),
-            on_click=lambda e: self.page.show_dialog(date_picker),
-        )
-        time_field = ft.TextField(
-            label="Due Time",
-            read_only=True,
-            suffix_icon=ft.Icons.ACCESS_TIME,
-            value=selected_time[0].strftime("%H:%M"),
-            on_click=lambda e: self.page.show_dialog(time_picker),
-        )
-
-        def on_date_selected(e):
-            d = date_picker.value
-            if d:
-                selected_date[0] = d.date()  # pyright: ignore[reportAttributeAccessIssue]
-                date_field.value = selected_date[0].isoformat()
-                date_field.update()
-
-        def on_time_selected(e):
-            t = time_picker.value
-            if t:
-                selected_time[0] = datetime(
-                    year=1, month=1, day=1,
-                    hour=t.hour, minute=t.minute,
-                ).time()
-                time_field.value = selected_time[0].strftime("%H:%M")
-                time_field.update()
-
-        date_picker.on_change = on_date_selected
-        time_picker.on_change = on_time_selected
-
-        # pre-attach pickers to the page so they render properly
-        self.page.overlay.append(date_picker)
-        self.page.overlay.append(time_picker)
-
-        def on_submit(e):
-            new_due = datetime.combine(selected_date[0], selected_time[0])
+        def on_submit(new_due: datetime) -> None:
             ctx.lending_entry.due_date = new_due.timestamp()
             self._lending_storage().update_by_id(ctx.lending_id, ctx.lending_entry)
             self._lending_storage().save()
-            self.page.pop_dialog()
 
-        def on_close(e):
-            self.page.overlay.remove(date_picker)
-            self.page.overlay.remove(time_picker)
-            self.page.pop_dialog()
-
-        dialog = ft.AlertDialog(
-            modal=True,
-            title=ft.Text("Edit Due Date"),
-            content=ft.Column(
-                [
-                    ft.Row([date_field, time_field]),
-                ],
-                tight=True,
-            ),
-            actions=[
-                ft.TextButton("Cancel", on_click=on_close),
-                ft.FilledButton("Save", icon=ft.Icons.SAVE, on_click=on_submit),
-            ],
-        )
-
+        # Show the dialog; it handles its own overlay management
+        dialog = EditDateTimeDialog(current_due=current_due, on_submit=on_submit)
         self.page.show_dialog(dialog)
 
     def on_lending_remove(self, ctx: OnLendingRemoveCtx):
