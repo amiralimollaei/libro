@@ -123,6 +123,9 @@ class StatisticsTab(AbstractTab):
     def register_page(self, page: ft.Page):
         self._refresh_data()
 
+    def get_title(self) -> str:
+        return "Statistics"
+
     def _build_ui(self):
         # overview cards row
         self.total_books_card = StatCard(

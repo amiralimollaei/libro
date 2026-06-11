@@ -136,6 +136,13 @@ class Libro:
     def get_statistics_storage() -> JsonFileStorage[Statistics]:
         return LibroStorage.get(JsonFileStorage[Statistics], Statistics)
 
+    def _on_fab_click(self, e):
+        """FAB handler — switches to Add Book tab."""
+        assert self.app_page
+
+        if hasattr(self, '_builder'):
+            self._builder.show_add_book_tab(self.add_tab)
+
     def on_add_book(self, e):
         assert self.app_page
 
@@ -163,17 +170,22 @@ class Libro:
 
         self.add_tab.reset()
 
-        self.app_page.show_dialog(dialog=ft.AlertDialog(
-            title=ft.Text("Add Book"),
-            content=ft.Text("Book was successfully added to your library."),
-            actions=[
-                ft.TextButton(
-                    "Ok",
-                    on_click=lambda e: self.app_page.pop_dialog()  # pyright: ignore[reportOptionalMemberAccess]
-                )
-            ],
-            open=True,
-        ))
+        # Navigate back to Library tab after successful add
+        if hasattr(self, '_builder'):
+            self._builder.select_nav_index(0)
+            self._builder.show_library_tab(self.lib_tab)
+
+        # Show snackbar after navigation to avoid AnimatedSwitcher breaking the page reference
+        self.show_snackbar("Book was successfully added to your library.")
+
+    def show_snackbar(self, content: str):
+        assert self.app_page
+        self.app_page.show_dialog(
+            ft.SnackBar(
+                content=ft.Text(content),
+                behavior=ft.SnackBarBehavior.FLOATING
+            )
+        )
 
     def app(self, page: ft.Page):
         page.window.width = 420
@@ -197,11 +209,14 @@ class Libro:
         )
 
         builder = TabsBuilder(page)
+        self._builder = builder
 
         self.lib_tab = builder.new_tab(LibraryTab, label="Library", icon=ft.Icons.LIBRARY_BOOKS)
         self.lending_tab = builder.new_tab(LendingTab, label="Lending", icon=ft.Icons.OUTBOX)
         self.statistics_tab = builder.new_tab(StatisticsTab, label="Statistics", icon=ft.Icons.BAR_CHART)
-        self.add_tab = builder.new_tab(AddTab, label="Add Book", icon=ft.Icons.ADD_CIRCLE)
+
+        # Add Book tab is created but not shown in the nav — accessed via FAB
+        self.add_tab = builder.new_hidden_tab(AddTab)
 
         self.lib_tab.register_lend_callback(self.on_lend_book_requested)
         self.lib_tab.register_search_engine(self.book_search_engine)
@@ -211,7 +226,13 @@ class Libro:
 
         self.add_tab.register_on_add_book_callback(self.on_add_book)
 
-        page.add(ft.SafeArea(builder.build(), expand=True))
+        fab = ft.FloatingActionButton(
+            icon=ft.Icons.ADD,
+            tooltip="Add a Book",
+        )
+        builder.set_fab(fab)
+
+        page.add(ft.SafeArea(builder.build(on_fab_click=self._on_fab_click), expand=True))
 
         self.app_page = page
 

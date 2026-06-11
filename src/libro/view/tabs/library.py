@@ -80,7 +80,9 @@ class OnPageReadCtx(CallbackContext):
         self.total_pages = total_pages
 
 
-class BookRow(ft.Container, CallbackMixin):
+class BookRow(ft.Card, CallbackMixin):
+    """A Card-based book entry with ripple touch feedback and elevation — Android-native feel."""
+
     COVER_WIDTH = 80
     COVER_HEIGHT = 120
 
@@ -113,62 +115,53 @@ class BookRow(ft.Container, CallbackMixin):
         )
         cover = self.cover
 
+        self.page_counter_text = ft.Text(
+            f"{self.current_page}",
+            size=16,
+            weight=ft.FontWeight.BOLD,
+            text_align=ft.TextAlign.CENTER,
+        )
+
+        self.page_slider = ft.Slider(
+            min=0,
+            max=float(self.total_pages),
+            value=float(self.current_page),
+            divisions=self.total_pages,
+            label="{value}",
+            on_change_end=self._on_slider_changed,
+            width=120,
+        )
+
         self.page_counter_inputs = ft.Column(
             [
                 ft.Row(
                     [
-                        ft.ElevatedButton(
-                            content="-5",
-                            on_click=self._decrement_page_5,
-                            style=ft.ButtonStyle(
-                                padding=0,
-                            ),
-                            width=40,
-                            height=30,
-                        ),
-                        ft.ElevatedButton(
-                            content="-1",
+                        ft.IconButton(
+                            icon=ft.Icons.REMOVE,
+                            icon_size=18,
+                            tooltip="Previous Page",
                             on_click=self._decrement_page,
-                            style=ft.ButtonStyle(
-                                padding=0,
-                            ),
-                            width=40,
-                            height=30,
                         ),
-                    ],
-                    spacing=5
-                ),
-                ft.Row(
-                    [
-                        ft.ElevatedButton(
-                            content="+5",
-                            on_click=self._increment_page_5,
-                            style=ft.ButtonStyle(
-                                padding=0,
-                            ),
-                            width=40,
-                            height=30,
-                        ),
-                        ft.ElevatedButton(
-                            content="+1",
+                        self.page_counter_text,
+                        ft.IconButton(
+                            icon=ft.Icons.ADD,
+                            icon_size=18,
+                            tooltip="Next Page",
                             on_click=self._increment_page,
-                            style=ft.ButtonStyle(
-                                padding=0,
-                            ),
-                            width=40,
-                            height=30,
                         ),
                     ],
-                    spacing=5
-                )
+                    alignment=ft.MainAxisAlignment.CENTER,
+                    spacing=2,
+                ),
+                self.page_slider,
             ],
-            spacing=5
+            spacing=0,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         )
 
-        self.lend_button = ft.TextButton(
-            content="Lend",
-            tooltip="Lend Book",
+        self.lend_button = ft.IconButton(
             icon=ft.Icons.PERSON_ADD,
+            tooltip="Lend Book",
             on_click=self._lend_book,
         )
 
@@ -186,52 +179,57 @@ class BookRow(ft.Container, CallbackMixin):
 
         super().__init__(
             expand=True,
-            padding=10,
-            on_click=self._on_book_click,
-            content=ft.Column(
-                spacing=8,
-                controls=[
-                    ft.Row(
-                        vertical_alignment=ft.CrossAxisAlignment.START,
-                        controls=[
-                            cover,
-                            ft.Column(
-                                expand=True,
-                                spacing=4,
-                                controls=[
-                                    ft.Text(
-                                        self.title,
-                                        size=18,
-                                        weight=ft.FontWeight.BOLD,
-                                        max_lines=2,
-                                        overflow=ft.TextOverflow.ELLIPSIS,
-                                    ),
-                                    ft.Text(
-                                        self.author,
-                                        size=14,
-                                    ),
-                                    ft.Text(
-                                        str(self.year),
-                                        size=13,
-                                        color=ft.Colors.OUTLINE,
-                                    ),
-                                ],
-                            ),
-                            ft.Column(
-                                alignment=ft.MainAxisAlignment.END,
-                                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                                controls=[
-                                    self.lend_button,
-                                    self.page_counter_inputs,
-                                ],
-                            ),
-                        ],
-                    ),
-                    ft.Row([
-                        self.progress_text,
-                        self.progress_bar,
-                    ], expand=True),
-                ],
+            elevation=1,
+            margin=ft.Margin(0, 2, 0, 2),
+            content=ft.Container(
+                padding=10,
+                ink=True,
+                on_click=self._on_book_click,
+                content=ft.Column(
+                    spacing=8,
+                    controls=[
+                        ft.Row(
+                            vertical_alignment=ft.CrossAxisAlignment.START,
+                            controls=[
+                                cover,
+                                ft.Column(
+                                    expand=True,
+                                    spacing=4,
+                                    controls=[
+                                        ft.Text(
+                                            self.title,
+                                            size=18,
+                                            weight=ft.FontWeight.BOLD,
+                                            max_lines=2,
+                                            overflow=ft.TextOverflow.ELLIPSIS,
+                                        ),
+                                        ft.Text(
+                                            self.author,
+                                            size=14,
+                                        ),
+                                        ft.Text(
+                                            str(self.year),
+                                            size=13,
+                                            color=ft.Colors.OUTLINE,
+                                        ),
+                                    ],
+                                ),
+                                ft.Column(
+                                    alignment=ft.MainAxisAlignment.END,
+                                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                                    controls=[
+                                        self.lend_button,
+                                        self.page_counter_inputs,
+                                    ],
+                                ),
+                            ],
+                        ),
+                        ft.Row([
+                            self.progress_text,
+                            self.progress_bar,
+                        ], expand=True),
+                    ],
+                ),
             ),
         )
 
@@ -285,14 +283,6 @@ class BookRow(ft.Container, CallbackMixin):
             self._run_callbacks(OnPageReadCtx(self.book_id, old_page, self.current_page, self.total_pages))
             self._refresh_progress()
 
-    async def _increment_page_5(self, e):
-        if (self.current_page + 5) <= self.total_pages:
-            old_page = self.current_page
-            self.current_page += 5
-            self.book.current_page = self.current_page
-            self._run_callbacks(OnPageReadCtx(self.book_id, old_page, self.current_page, self.total_pages))
-            self._refresh_progress()
-
     async def _decrement_page(self, e):
         if (self.current_page - 1) >= 0:
             old_page = self.current_page
@@ -301,10 +291,12 @@ class BookRow(ft.Container, CallbackMixin):
             self._run_callbacks(OnPageReadCtx(self.book_id, old_page, self.current_page, self.total_pages))
             self._refresh_progress()
 
-    async def _decrement_page_5(self, e):
-        if (self.current_page - 5) >= 0:
+    def _on_slider_changed(self, e):
+        """Called when the slider value is dragged."""
+        new_page = int(round(e.control.value))
+        if new_page != self.current_page:
             old_page = self.current_page
-            self.current_page -= 5
+            self.current_page = new_page
             self.book.current_page = self.current_page
             self._run_callbacks(OnPageReadCtx(self.book_id, old_page, self.current_page, self.total_pages))
             self._refresh_progress()
@@ -313,6 +305,8 @@ class BookRow(ft.Container, CallbackMixin):
         self.cover.set_overlay_text(self.get_counter_text())
         self.progress_text.value = self.get_progress_text()
         self.progress_bar.value = self.get_progress()
+        self.page_counter_text.value = str(self.current_page)
+        self.page_slider.value = float(self.current_page)
         self._run_callbacks(OnBookChangedCtx(self.book, self.book_id))
 
         self.update()
@@ -408,6 +402,9 @@ class LibraryTab(AbstractTab):
 
     def register_page(self, page: ft.Page):
         return
+
+    def get_title(self) -> str:
+        return "Library"
 
     def register_search_engine(self, search_engine):
         self.search_engine = search_engine

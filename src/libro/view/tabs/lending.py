@@ -1,3 +1,4 @@
+import logging
 import os
 import time
 from datetime import datetime
@@ -42,7 +43,8 @@ class OnLendingRemoveCtx(CallbackContext):
         self.book_id = book_id
 
 
-class LendingBookRow(ft.Row, CallbackMixin):
+class LendingBookRow(ft.Card, CallbackMixin):
+    """A Card-based lending entry with status coloring and action buttons."""
     COVER_WIDTH = 80
     COVER_HEIGHT = 120
 
@@ -58,8 +60,6 @@ class LendingBookRow(ft.Row, CallbackMixin):
             OnLendingEditDueCtx.id,
             OnLendingRemoveCtx.id,
         ])
-
-        super().__init__()
 
         self.book = book
         self.book_id = book_id
@@ -134,79 +134,83 @@ class LendingBookRow(ft.Row, CallbackMixin):
                 )
             )
 
-        self.controls = [
-            ft.Container(
-                expand=True,
-                padding=10,
-                border_radius=8,
-                bgcolor=(
-                    ft.Colors.ERROR_CONTAINER
-                    if is_overdue
-                    else None
-                ),
-                content=ft.Column(
-                    spacing=6,
-                    controls=[
-                        ft.Row(
-                            vertical_alignment=ft.CrossAxisAlignment.START,
-                            controls=[
-                                cover,
-                                ft.Column(
-                                    expand=True,
-                                    spacing=4,
-                                    controls=[
-                                        ft.Text(
-                                            book.title,
-                                            size=18,
-                                            weight=ft.FontWeight.BOLD,
-                                            max_lines=2,
-                                            overflow=ft.TextOverflow.ELLIPSIS,
-                                        ),
-                                        ft.Text(
-                                            book.author.full_name(),
-                                            size=14,
-                                        ),
-                                        ft.Text(
-                                            f"Borrowed by: {lending_entry.borrower.full_name()}",
-                                            size=13,
-                                        ),
-                                        ft.Text(
-                                            f"Lent: {lent_date}",
-                                            size=12,
-                                            color=ft.Colors.OUTLINE,
-                                        ),
-                                        ft.Text(
-                                            f"Due: {due_date}",
-                                            size=12,
-                                            color=ft.Colors.OUTLINE,
-                                        ),
-                                    ],
-                                ),
-                                ft.Column(
-                                    horizontal_alignment=ft.CrossAxisAlignment.END,
-                                    controls=[
-                                        ft.Icon(
-                                            status_icon,
-                                            color=status_color,
-                                        ),
-                                        ft.Text(
-                                            status_text,
-                                            color=status_color,
-                                            weight=ft.FontWeight.BOLD,
-                                            size=12,
-                                        ),
-                                    ],
-                                ),
-                            ],
-                        ),
-                        ft.Row(
-                            alignment=ft.MainAxisAlignment.END,
-                            controls=action_controls,
-                        ),
-                    ],
-                ),
-            )
-        ]
+        content = ft.Container(
+            expand=True,
+            padding=10,
+            border_radius=8,
+            bgcolor=(
+                ft.Colors.ERROR_CONTAINER
+                if is_overdue
+                else None
+            ),
+            content=ft.Column(
+                spacing=6,
+                controls=[
+                    ft.Row(
+                        vertical_alignment=ft.CrossAxisAlignment.START,
+                        controls=[
+                            cover,
+                            ft.Column(
+                                expand=True,
+                                spacing=4,
+                                controls=[
+                                    ft.Text(
+                                        book.title,
+                                        size=18,
+                                        weight=ft.FontWeight.BOLD,
+                                        max_lines=2,
+                                        overflow=ft.TextOverflow.ELLIPSIS,
+                                    ),
+                                    ft.Text(
+                                        book.author.full_name(),
+                                        size=14,
+                                    ),
+                                    ft.Text(
+                                        f"Borrowed by: {lending_entry.borrower.full_name()}",
+                                        size=13,
+                                    ),
+                                    ft.Text(
+                                        f"Lent: {lent_date}",
+                                        size=12,
+                                        color=ft.Colors.OUTLINE,
+                                    ),
+                                    ft.Text(
+                                        f"Due: {due_date}",
+                                        size=12,
+                                        color=ft.Colors.OUTLINE,
+                                    ),
+                                ],
+                            ),
+                            ft.Column(
+                                horizontal_alignment=ft.CrossAxisAlignment.END,
+                                controls=[
+                                    ft.Icon(
+                                        status_icon,
+                                        color=status_color,
+                                    ),
+                                    ft.Text(
+                                        status_text,
+                                        color=status_color,
+                                        weight=ft.FontWeight.BOLD,
+                                        size=12,
+                                    ),
+                                ],
+                            ),
+                        ],
+                    ),
+                    ft.Row(
+                        alignment=ft.MainAxisAlignment.END,
+                        controls=action_controls,
+                    ),
+                ],
+            ),
+        )
+
+        super().__init__(
+            elevation=1,
+            margin=ft.Margin(0, 2, 0, 2),
+            content=content,
+        )
 
     def _on_return_click(self, e):
         self._run_callbacks(
@@ -251,6 +255,9 @@ class LendingTab(AbstractTab):
 
     def register_page(self, page: ft.Page):
         return
+
+    def get_title(self) -> str:
+        return "Lending"
 
     @staticmethod
     def _lending_storage() -> JsonIdNumeralStorage[LendingEntry]:
@@ -383,7 +390,7 @@ class LendingTab(AbstractTab):
 
     def on_lending_remove(self, ctx: OnLendingRemoveCtx):
         """Remove a lending entry without firing any statistical events.
-        
+
         Scans and removes any StatisticalEvents referencing this lend_id,
         then deletes the lending entry and rebuilds the statistics cache.
         """
