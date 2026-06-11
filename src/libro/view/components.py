@@ -3,7 +3,7 @@ from typing import Optional
 import flet as ft
 
 
-# views shared by most tabs
+# views shared by more than one tab
 
 class BookCover(ft.Container):
     """

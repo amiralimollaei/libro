@@ -4,7 +4,7 @@ from typing import Callable, Generic, Self, Type, TypeVar, cast
 
 from dataclasses_json import DataClassJsonMixin
 
-from ..callbacks import CallbackContext, CallbackMixin, CallbackResult
+from ..callbacks import *
 
 
 class StorableObject(DataClassJsonMixin):
@@ -73,7 +73,7 @@ class StorageHandler(Generic[T], ABC, CallbackMixin):
     @abstractmethod
     def from_path(cls, item_cls: Type[T], path: Path) -> Self:
         ...
-    
+
     @abstractmethod
     def save(self) -> None:
         ...

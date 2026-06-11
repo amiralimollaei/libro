@@ -1,11 +1,17 @@
 import logging
 import os
-import time
 
 import flet as ft
 
 from .asyncutils import DelayedTaskScheduler
-from .callbacks.statistics import ensure_statistics_cache, on_reading_event_added, register_statistics_callbacks
+from .callbacks.statistics import (ensure_statistics_cache,
+                                   register_statistics_callbacks)
+from .controller import *
+from .model import *
+from .search.engine import BookSearchEngine
+from .storage import *
+from .view.builder import TabsBuilder
+from .view.tabs import *
 
 # Default logging configuration
 logging.basicConfig(
@@ -13,14 +19,6 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
-from .model import BookEntry, BookLentEvent, BookReturnedEvent, LendingEntry, Person, Statistics, StatisticalEvent
-from .search.engine import BookSearchEngine
-from .storage import (JsonFileStorage, JsonIdNumeralStorage, LibroPaths,
-                      LibroStorage)
-from .view.builder import TabsBuilder
-from .view.dalogs.lending import LendingDialog
-from .view.tabs import (AddTab, LendingTab, LibraryTab,
-                        OnLendBookRequestedCtx, StatisticsTab)
 
 
 class Libro:
@@ -57,69 +55,6 @@ class Libro:
         register_statistics_callbacks()
         ensure_statistics_cache()
 
-    def on_lend_book_requested(self, ctx: OnLendBookRequestedCtx):
-        assert self.app_page
-
-        def on_lending_dialog_submit(dialog: LendingDialog):
-            lending_storage = self.get_lending_storage()
-            lend_id = lending_storage.add(LendingEntry(
-                book_id=ctx.book_id,
-                borrower=Person(name=dialog.borrower),
-                lent_date=time.time(),
-                due_date=dialog.due_at.timestamp()  # pyright: ignore[reportOptionalMemberAccess]
-            ))
-            lending_storage.save()
-            
-            # Emit BookLentEvent
-            event = StatisticalEvent(
-                book_id=ctx.book_id,
-                timestamp=time.time(),
-                book_lent=BookLentEvent(
-                    lend_id=lend_id,
-                    total_pages=ctx.book.pages
-                )
-            )
-            self.get_reading_events_storage().add(event)
-            self.get_reading_events_storage().save()
-
-        self.app_page.show_dialog(
-            LendingDialog(
-                book_title=ctx.book.title,
-                on_submit=on_lending_dialog_submit
-            )
-        )
-
-    def return_book(self, lending_id: int, book_id: int):
-        """Mark a lent book as returned and emit BookReturnedEvent."""
-        lending_storage = self.get_lending_storage()
-        lending_entry = lending_storage.get(lending_id)
-        
-        if lending_entry is None:
-            return
-        
-        # Calculate overdue_time if applicable
-        current_time = time.time()
-        overdue_time = None
-        if current_time > lending_entry.due_date:
-            overdue_time = current_time - lending_entry.due_date  # seconds overdue
-        
-        # Update the lending entry with returned time
-        lending_entry.returned_time = current_time
-        lending_storage.update_by_id(lending_id, lending_entry)
-        lending_storage.save()
-        
-        # Emit BookReturnedEvent
-        event = StatisticalEvent(
-            book_id=book_id,
-            timestamp=current_time,
-            book_returned=BookReturnedEvent(
-                lend_id=lending_id,
-                overdue_time=overdue_time
-            )
-        )
-        self.get_reading_events_storage().add(event)
-        self.get_reading_events_storage().save()
-
     @staticmethod
     def get_book_storage() -> JsonIdNumeralStorage[BookEntry]:
         return LibroStorage.get(JsonIdNumeralStorage[BookEntry], BookEntry)
@@ -136,44 +71,21 @@ class Libro:
     def get_statistics_storage() -> JsonFileStorage[Statistics]:
         return LibroStorage.get(JsonFileStorage[Statistics], Statistics)
 
-    def on_add_book(self, e):
+    def _on_fab_click(self, e):
+        """FAB handler — switches to Add Book tab."""
         assert self.app_page
 
-        book = None
-        try:
-            book = self.add_tab.get_book_object()
-        except AttributeError:
-            banner = ft.AlertDialog(
-                title=ft.Text("Add Book"),
-                content=ft.Text("Please fill all the required fields."),
-                actions=[
-                    ft.TextButton(
-                        "Ok",
-                        on_click=lambda e: self.app_page.pop_dialog()  # pyright: ignore[reportOptionalMemberAccess]
-                    )
-                ],
-                open=True,
+        if hasattr(self, '_builder'):
+            self._builder.show_add_book_tab(self.add_tab)
+
+    def show_snackbar(self, content: str):
+        assert self.app_page
+        self.app_page.show_dialog(
+            ft.SnackBar(
+                content=ft.Text(content),
+                behavior=ft.SnackBarBehavior.FLOATING
             )
-            self.app_page.show_dialog(banner)
-            return
-
-        book_storage = Libro.get_book_storage()
-        book_storage.add(book)
-        book_storage.save()
-
-        self.add_tab.reset()
-
-        self.app_page.show_dialog(dialog=ft.AlertDialog(
-            title=ft.Text("Add Book"),
-            content=ft.Text("Book was successfully added to your library."),
-            actions=[
-                ft.TextButton(
-                    "Ok",
-                    on_click=lambda e: self.app_page.pop_dialog()  # pyright: ignore[reportOptionalMemberAccess]
-                )
-            ],
-            open=True,
-        ))
+        )
 
     def app(self, page: ft.Page):
         page.window.width = 420
@@ -196,33 +108,18 @@ class Libro:
             use_material3=True,
         )
 
-        builder = TabsBuilder(page)
-
-        self.lib_tab = builder.new_tab(LibraryTab, label="Library", icon=ft.Icons.LIBRARY_BOOKS)
-        self.lending_tab = builder.new_tab(LendingTab, label="Lending", icon=ft.Icons.OUTBOX)
-        self.statistics_tab = builder.new_tab(StatisticsTab, label="Statistics", icon=ft.Icons.BAR_CHART)
-        self.add_tab = builder.new_tab(AddTab, label="Add Book", icon=ft.Icons.ADD_CIRCLE)
-
-        self.lib_tab.register_lend_callback(self.on_lend_book_requested)
-        self.lib_tab.register_search_engine(self.book_search_engine)
-        self.lib_tab.update_books(Libro.get_book_storage().objects)
-
-        self.lending_tab.update_lending_entries(Libro.get_lending_storage().objects)
-
-        self.add_tab.register_on_add_book_callback(self.on_add_book)
-
-        page.add(ft.SafeArea(builder.build(), expand=True))
+        self.build_main_view(page)
 
         self.app_page = page
 
-        # exit confirmation dialog
-        def on_window_close(event: ft.WindowEvent):
+        # ---- Back / Close button handling ----
+
+        def _navigate_back_or_exit():
+            """If hidden tab is showing, go back to Library. Otherwise, show exit dialog."""
             async def actually_close(e):
                 await DelayedTaskScheduler.flush_all()
                 await page.window.destroy()
 
-            if event.type != ft.WindowEventType.CLOSE:
-                return
             dlg = ft.AlertDialog(
                 title=ft.Text("Exit"),
                 content=ft.Text("Are you sure you want to exit Libro?"),
@@ -239,8 +136,73 @@ class Libro:
             )
             page.show_dialog(dlg)
 
+        # Desktop: window close button (X) fires on_event
+        def on_window_close(event: ft.WindowEvent):
+            if event.type != ft.WindowEventType.CLOSE:
+                return
+            _navigate_back_or_exit()
+
         page.window.prevent_close = True
         page.window.on_event = on_window_close
+
+        self.app_page = page
+
+    def build_main_view(self, page: ft.Page):
+        builder = TabsBuilder(page)
+        self._builder = builder
+
+        self.lib_tab = builder.new_tab(LibraryTab, label="Library", icon=ft.Icons.LIBRARY_BOOKS)
+        self.lending_tab = builder.new_tab(LendingTab, label="Lending", icon=ft.Icons.OUTBOX)
+        self.statistics_tab = builder.new_tab(StatisticsTab, label="Statistics", icon=ft.Icons.BAR_CHART)
+
+        # Add Book tab is created but not shown in the nav — accessed via FAB
+        self.add_tab = builder.new_hidden_tab(AddTab)
+
+        # ---- Wire up the controllers ----
+
+        # Library controller
+        library_controller = LibraryController(
+            page=page,
+            view=self.lib_tab,
+            search_engine=self.book_search_engine,
+        )
+        library_controller.register_callbacks()
+
+        # Lending controller
+        lending_controller = LendingController(
+            page=page,
+            view=self.lending_tab,
+        )
+        lending_controller.register_callbacks()
+
+        # Add Book controller
+        add_book_controller = AddBookController(
+            page=page,
+            view=self.add_tab,
+            builder=builder,
+            lib_tab=self.lib_tab,
+        )
+        add_book_controller.register_callbacks()
+
+        # Statistics controller
+        statistics_controller = StatisticsController(
+            page=page,
+            view=self.statistics_tab,
+        )
+        statistics_controller.register_callbacks()
+
+        # ---- Initial data loads ----
+
+        self.lib_tab.update_books(Libro.get_book_storage().objects)
+        self.lending_tab.update_lending_entries(Libro.get_lending_storage().objects)
+
+        fab = ft.FloatingActionButton(
+            icon=ft.Icons.ADD,
+            tooltip="Add a Book",
+        )
+        builder.set_fab(fab)
+
+        page.add(ft.SafeArea(builder.build(on_fab_click=self._on_fab_click), expand=True))
 
     def run(self):
         ft.run(self.app, assets_dir=str(LibroPaths.assets().absolute()))
