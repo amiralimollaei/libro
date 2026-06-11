@@ -1,15 +1,11 @@
-import time
 from typing import Callable, Optional
 
 import flet as ft
 
-from ...asyncutils import DelayedTaskScheduler
 from ...callbacks import CallbackContext, CallbackMixin
-from ...model import (BookEntry, BookFilter, BookFinishedEvent, BookReadEvent,
-                      StatisticalEvent)
+from ...model import (BookEntry, BookFilter)
 from ...search.engine import BookSearchEngine
-from ...storage import (JsonIdNumeralStorage, LibroPaths, LibroStorage,
-                        OnObjectsChangedCtx)
+from ...storage import (JsonIdNumeralStorage, LibroPaths, LibroStorage)
 from ..components import BookCover
 from ..dalogs.advancedsearch import AdvancedSearchDialog
 from ..dalogs.bookdetails import BookDetailsDialog
@@ -319,11 +315,14 @@ class LibraryTab(AbstractTab):
     def __init__(self, **container_kwargs):
         self.__init_callbacks__([
             OnSearchChangedCtx.id,
-            OnLendBookRequestedCtx.id
+            OnLendBookRequestedCtx.id,
+            OnBookChangedCtx.id,
+            OnBookRemoveCtx.id,
+            OnBookLendCtx.id,
+            OnPageReadCtx.id,
         ])
 
-        self._page_event_scheduler = DelayedTaskScheduler()
-        self._book_baseline_page: dict[int, int] = {}
+        self.search_engine: BookSearchEngine | None = None
 
         self.search_no_result_view = ft.Container(
             expand=True,
@@ -352,8 +351,6 @@ class LibraryTab(AbstractTab):
             ),
         )
 
-        self.search_engine: BookSearchEngine | None = None
-
         self.book_list_view = ft.ListView(
             expand=True,
             spacing=10
@@ -373,16 +370,6 @@ class LibraryTab(AbstractTab):
 
         self.advanced_search_dialog = AdvancedSearchDialog(self.on_search_change)
 
-        self.main_book_view = ft.Column(
-            [
-                ft.Row([self.search_input, self.toggle_button]),
-                self.library_content,
-            ],
-            alignment=ft.MainAxisAlignment.START,
-            scroll=ft.ScrollMode.AUTO,
-            expand=True,
-        )
-
         self.main_column = ft.Column(
             [
                 ft.Row(
@@ -396,8 +383,6 @@ class LibraryTab(AbstractTab):
             expand=True,
         )
 
-        LibroStorage.get(JsonIdNumeralStorage[BookEntry], BookEntry).register_change_callback(self.on_books_changed)
-
         super().__init__(content=self.main_column, **container_kwargs)
 
     def register_page(self, page: ft.Page):
@@ -406,94 +391,41 @@ class LibraryTab(AbstractTab):
     def get_title(self) -> str:
         return "Library"
 
+    # ---- Registration methods for the Controller ----
+
     def register_search_engine(self, search_engine):
         self.search_engine = search_engine
 
     def register_lend_callback(self, fn: Callable[[OnLendBookRequestedCtx], None]):
         self.register_callback(OnLendBookRequestedCtx.id, fn)
 
-    def on_books_changed(self, ctx: OnObjectsChangedCtx):
-        self.update_books(LibroStorage.get(JsonIdNumeralStorage[BookEntry], BookEntry).objects)
+    def register_on_search_change_fn(self, on_search_change_fn: Callable[[OnSearchChangedCtx], None]):
+        self.register_callback(OnSearchChangedCtx.id, fn=on_search_change_fn)
 
-        self.update()
+    def register_on_book_changed(self, fn: Callable[[OnBookChangedCtx], None]):
+        self.register_callback(OnBookChangedCtx.id, fn)
 
-    def on_book_lend(self, ctx: OnBookLendCtx):
-        self._run_callbacks(
-            OnLendBookRequestedCtx(
-                ctx.book,
-                ctx.book_id
-            )
-        )
+    def register_on_book_remove(self, fn: Callable[[OnBookRemoveCtx], None]):
+        self.register_callback(OnBookRemoveCtx.id, fn)
 
-    def on_page_read(self, ctx: OnPageReadCtx):
-        """Called by BookRow when the user changes the page counter.
+    def register_on_book_lend(self, fn: Callable[[OnBookLendCtx], None]):
+        self.register_callback(OnBookLendCtx.id, fn)
 
-        Debounces event emission so that rapid clicks produce a single
-        BookReadEvent covering the net change from the first click.
+    def register_on_page_read(self, fn: Callable[[OnPageReadCtx], None]):
+        self.register_callback(OnPageReadCtx.id, fn)
+
+    # ---- View methods ----
+
+    def on_search_change(self, e: Optional[ft.Event] = None):
+        """Called when the search input or advanced filters change.
+        
+        Fires OnSearchChangedCtx which the controller handles.
         """
-        if ctx.new_page == ctx.old_page:
-            return
-
-        # capture the first page value as the baseline for the delta
-        if ctx.book_id not in self._book_baseline_page:
-            self._book_baseline_page[ctx.book_id] = ctx.old_page
-
-        book_id = ctx.book_id
-        total_pages = ctx.total_pages
-        baseline = self._book_baseline_page[book_id]
-
-        async def _write_event():
-            book_storage = LibroStorage.get(JsonIdNumeralStorage[BookEntry], BookEntry)
-            current_book = book_storage.get(book_id)
-            if current_book is None:
-                return
-            pages_read = current_book.current_page or 0
-
-            event = StatisticalEvent(
-                book_id=book_id,
-                timestamp=time.time(),
-                book_read=BookReadEvent(
-                    pages_read=pages_read,
-                    previous_pages_read=baseline,
-                )
-            )
-            events_storage = LibroStorage.get(JsonIdNumeralStorage[StatisticalEvent], StatisticalEvent)
-            events_storage.add(event)
-            events_storage.save()
-
-            # reset baseline so the next burst of clicks starts fresh
-            self._book_baseline_page.pop(book_id, None)
-
-            # check if book is now finished
-            if pages_read >= total_pages:
-                self._emit_book_finished_event(book_id, total_pages)
-
-        self._page_event_scheduler.debounce(
-            10.0,
-            _write_event,
-            key=f"page_event_{book_id}",
-        )
-
-    def _emit_book_finished_event(self, book_id: int, total_pages: int):
-        """Emit a BookFinishedEvent when a book is completed."""
-        estimated_reading_rate = 30  # pages per day
-        days_to_finish = total_pages / estimated_reading_rate
-
-        event = StatisticalEvent(
-            book_id=book_id,
-            timestamp=time.time(),
-            book_finished=BookFinishedEvent(
-                total_pages=total_pages,
-                days_to_finish=days_to_finish
-            )
-        )
-        events_storage = LibroStorage.get(JsonIdNumeralStorage[StatisticalEvent], StatisticalEvent)
-        events_storage.add(event)
-        events_storage.save()
+        filters = self.get_book_filter()
+        self._run_callbacks(OnSearchChangedCtx(filters))
 
     async def _on_advanced_search(self, e):
         page = self.page
-
         if page:
             page.show_dialog(self.advanced_search_dialog)
 
@@ -511,24 +443,6 @@ class LibraryTab(AbstractTab):
             include_summary=True
         )
 
-    def register_on_search_change_fn(self, on_search_change_fn: Callable[[OnSearchChangedCtx], None]):
-        self.register_callback(OnSearchChangedCtx.id, fn=on_search_change_fn)
-
-    def on_search_change(self, e: Optional[ft.Event] = None):
-        filters = self.get_book_filter()
-        self._run_callbacks(OnSearchChangedCtx(filters))
-
-        assert self.search_engine
-        matched_books = self.search_engine.search(filters)
-
-        self.update_books(matched_books)
-
-    def on_book_change(self, ctx: OnBookChangedCtx):
-        LibroStorage.get(JsonIdNumeralStorage[BookEntry], BookEntry).update_by_id(ctx.book_id, ctx.book)
-
-    def on_book_remove(self, ctx: OnBookRemoveCtx):
-        LibroStorage.get(JsonIdNumeralStorage[BookEntry], BookEntry).remove_by_id(ctx.book_id)
-
     def update_books(self, books: dict[int, BookEntry]):
         if not books:
             self.library_content.content = self.search_no_result_view
@@ -538,10 +452,24 @@ class LibraryTab(AbstractTab):
 
         for id, book in books.items():
             book_row = BookRow(book, book_id=id)
-            book_row.register_on_book_changed(self.on_book_change)
-            book_row.register_on_book_remove(self.on_book_remove)
-            book_row.register_on_book_lend(self.on_book_lend)
-            book_row.register_on_page_read(self.on_page_read)
+            book_row.register_on_book_changed(self._forward_book_changed)
+            book_row.register_on_book_remove(self._forward_book_remove)
+            book_row.register_on_book_lend(self._forward_book_lend)
+            book_row.register_on_page_read(self._forward_page_read)
             self.book_list_view.controls.append(book_row)
 
         self.library_content.content = self.book_list_view
+
+    # ---- Forwarding methods: BookRow callbacks → LendingTab callbacks ----
+
+    def _forward_book_changed(self, ctx: OnBookChangedCtx):
+        self._run_callbacks(ctx)
+
+    def _forward_book_remove(self, ctx: OnBookRemoveCtx):
+        self._run_callbacks(ctx)
+
+    def _forward_book_lend(self, ctx: OnBookLendCtx):
+        self._run_callbacks(ctx)
+
+    def _forward_page_read(self, ctx: OnPageReadCtx):
+        self._run_callbacks(ctx)

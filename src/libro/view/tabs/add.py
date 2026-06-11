@@ -166,6 +166,7 @@ class AddTab(AbstractTab):
         self.genre_input.value = ""
 
     def save(self, e):
+        """Validate and fire OnAddBookCtx for the controller to handle."""
         if not self.title_input.value:
             self.title_input.border_color = ft.Colors.ERROR
         if not self.author_name_input.value:

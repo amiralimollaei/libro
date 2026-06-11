@@ -4,7 +4,7 @@ from typing import Optional
 import flet as ft
 
 from ...model import PagesInLentPeriodEntry, Statistics
-from ...storage import JsonFileStorage, LibroStorage, OnObjectsChangedCtx
+from ...storage import JsonFileStorage, LibroStorage
 from .base import AbstractTab
 
 
@@ -114,14 +114,8 @@ class StatisticsTab(AbstractTab):
             **container_kwargs,
         )
 
-        # auto-refresh whenever the statistics cache changes
-        stats_storage: JsonFileStorage[Statistics] = LibroStorage.get(
-            JsonFileStorage[Statistics], Statistics
-        )
-        stats_storage.register_change_callback(self._on_stats_changed)
-
     def register_page(self, page: ft.Page):
-        self._refresh_data()
+        self.refresh_data()
 
     def get_title(self) -> str:
         return "Statistics"
@@ -192,11 +186,11 @@ class StatisticsTab(AbstractTab):
             scroll=ft.ScrollMode.AUTO,
         )
 
-    def _on_stats_changed(self, ctx: OnObjectsChangedCtx):
-        self._refresh_data()
-
-    def _refresh_data(self):
-        """Load the statistics cache and update all UI elements."""
+    def refresh_data(self):
+        """Load the statistics cache and update all UI elements.
+        
+        Public method called by the controller when storage changes.
+        """
         stats_storage: JsonFileStorage[Statistics] = LibroStorage.get(
             JsonFileStorage[Statistics], Statistics
         )

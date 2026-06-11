@@ -24,6 +24,7 @@ class TabsBuilder:
         self._fab: Optional[ft.FloatingActionButton] = None
 
         self._current_tab_index = 0
+        self._showing_hidden_tab: bool = False
 
     # ── Public API for the Controller ──────────────────────────────────
 
@@ -40,6 +41,11 @@ class TabsBuilder:
             self._fab.visible = False
             self._fab.update()
         self._set_app_bar_title("Add a Book")
+        self._showing_hidden_tab = True
+
+    def is_showing_hidden_tab(self) -> bool:
+        """Check if a hidden tab (e.g. Add Book) is currently displayed."""
+        return self._showing_hidden_tab
 
     def show_library_tab(self, library_tab: AbstractTab):
         """Switch content back to the Library tab, show the FAB, update title."""
@@ -50,6 +56,7 @@ class TabsBuilder:
             self._fab.visible = True
             self._fab.update()
         self._set_app_bar_title(library_tab.get_title())
+        self._showing_hidden_tab = False
 
     def select_nav_index(self, index: int):
         """Programmatically select a navigation bar item."""
