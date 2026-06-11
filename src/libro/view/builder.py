@@ -24,8 +24,6 @@ class TabsBuilder:
         self._current_tab_index = 0
         self._showing_hidden_tab: bool = False
 
-    # ── Public API for the Controller ──────────────────────────────────
-
     def set_fab(self, fab: ft.FloatingActionButton):
         """Set a FAB that appears on the Library tab."""
         self._fab = fab
@@ -62,8 +60,6 @@ class TabsBuilder:
             self._nav_bar.selected_index = index
             self._nav_bar.update()
 
-    # ── Private helpers ────────────────────────────────────────────────
-
     def _set_app_bar_title(self, title: str):
         if self._app_bar is not None:
             self._app_bar.title = title
@@ -76,7 +72,8 @@ class TabsBuilder:
             self._fab.update()
 
     def build(self, on_fab_click: Callable | None = None, **tabs_kwargs):
-        """Construct the full page layout.
+        """
+        Construct the full page layout.
 
         Args:
             on_fab_click: Callback invoked when the FAB is tapped.
@@ -88,8 +85,6 @@ class TabsBuilder:
 
         first_tab = self.tabs[0][0]
 
-        # Content body — uses AnimatedSwitcher for smooth tab transitions.
-        # clip_behavior=HARD_EDGE ensures content inside isn't clipped/intercepted by the switcher.
         self._content_switcher = ft.AnimatedSwitcher(
             content=first_tab,
             transition=ft.AnimatedSwitcherTransition.FADE,
@@ -98,10 +93,9 @@ class TabsBuilder:
             switch_in_curve=ft.AnimationCurve.EASE_IN_OUT,
             switch_out_curve=ft.AnimationCurve.EASE_IN_OUT,
             expand=True,
-            # clip_behavior=ft.ClipBehavior.HARD_EDGE,
         )
 
-        # Wrap the switcher with proper padding
+        # wrap the switcher with proper padding
         content_container = ft.Container(
             alignment=ft.Alignment.TOP_CENTER,
             content=self._content_switcher,
@@ -109,7 +103,6 @@ class TabsBuilder:
             expand=True,
         )
 
-        # Navigation bar at the bottom
         self._nav_bar = ft.NavigationBar(
             destinations=[d for _, d in self.tabs],
             on_change=self._on_navigation,
@@ -117,15 +110,13 @@ class TabsBuilder:
             animation_duration=200,
         )
 
-        # AppBar — Material 3 centered title, subtle surface tint
         self._app_bar = ft.AppBar(
             title=first_tab.get_title(),
             center_title=True,
-            bgcolor=ft.Colors.PRIMARY_CONTAINER,
+            bgcolor=ft.Colors.SECONDARY_CONTAINER,
             elevation=0,
         )
 
-        # Main column (AppBar + content + nav)
         main_column = ft.Column(
             expand=True,
             spacing=0,
@@ -136,9 +127,8 @@ class TabsBuilder:
             ],
         )
 
-        # Build the FAB if one was set — place it as an overlay on the main_column.
-        # The Container wrapping the FAB is sized to JUST fit the FAB (56dp square),
-        # and positioned at BOTTOM_RIGHT so it doesn't block the rest of the UI.
+        # build the FAB if one was set, and place it as an overlay on the main_column.
+        # the Container wrapping the FAB is sized to JUST fit the FAB (56dp square).
         if self._fab is not None:
             self._fab.visible = True
             self._fab.on_click = on_fab_click
@@ -148,12 +138,9 @@ class TabsBuilder:
                 controls=[
                     main_column,
                     ft.Container(
-                        # Only expand enough to hold the FAB, not the full screen
-                        width=56,
-                        height=56,
                         content=self._fab,
                         alignment=ft.Alignment.CENTER,
-                        # Position at bottom-right above the nav bar
+                        # above the nav bar (accounted for padding)
                         right=16,
                         bottom=96,
                     ),
@@ -173,12 +160,11 @@ class TabsBuilder:
             self._content_switcher.content = tab
             self._content_switcher.update()
 
-            # Update AppBar title
             if self._app_bar is not None:
                 self._app_bar.title = tab.get_title()
                 self._app_bar.update()
 
-            # Show/hide FAB (only on Library tab = index 0)
+            # show/hide FAB (only on Library tab = index 0)
             self._update_fab_visibility(idx)
 
             self._current_tab_index = idx
