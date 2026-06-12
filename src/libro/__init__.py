@@ -3,6 +3,8 @@ import os
 
 import flet as ft
 
+from libro.view.tabs.about import AboutTab
+
 from .asyncutils import DelayedTaskScheduler
 from .callbacks.statistics import (ensure_statistics_cache,
                                    register_statistics_callbacks)
@@ -154,6 +156,7 @@ class Libro:
         self.lib_tab = builder.new_tab(LibraryTab, label="Library", icon=ft.Icons.LIBRARY_BOOKS)
         self.lending_tab = builder.new_tab(LendingTab, label="Lending", icon=ft.Icons.OUTBOX)
         self.statistics_tab = builder.new_tab(StatisticsTab, label="Statistics", icon=ft.Icons.BAR_CHART)
+        self.about_tab = builder.new_tab(AboutTab, label="About", icon=ft.Icons.INFO)
 
         # Add Book tab is created but not shown in the nav — accessed via FAB
         self.add_tab = builder.new_hidden_tab(AddTab)
