@@ -55,6 +55,24 @@ class AdvancedSearchDialog(ft.AlertDialog, CallbackMixin):
             on_select=self._on_filter_change,
         )
 
+        self.include_title_switch = ft.Switch(
+            label="Search in Title",
+            value=True,
+            on_change=self._on_filter_change,
+        )
+
+        self.include_author_switch = ft.Switch(
+            label="Search in Author",
+            value=True,
+            on_change=self._on_filter_change,
+        )
+
+        self.include_summary_switch = ft.Switch(
+            label="Search in Summary",
+            value=True,
+            on_change=self._on_filter_change,
+        )
+
         super().__init__(
             modal=False,
             title=ft.Text(
@@ -72,6 +90,12 @@ class AdvancedSearchDialog(ft.AlertDialog, CallbackMixin):
 
                         self.pages_min_input,
                         self.pages_max_input,
+
+                        ft.Divider(),
+                        ft.Text("Search In", weight=ft.FontWeight.BOLD),
+                        self.include_title_switch,
+                        self.include_author_switch,
+                        self.include_summary_switch,
                     ],
                     tight=True,
                 ),
@@ -121,12 +145,27 @@ class AdvancedSearchDialog(ft.AlertDialog, CallbackMixin):
             return None
         return self.genre_dropdown.value
 
+    @property
+    def include_title(self):
+        return self.include_title_switch.value
+
+    @property
+    def include_author(self):
+        return self.include_author_switch.value
+
+    @property
+    def include_summary(self):
+        return self.include_summary_switch.value
+
     def reset(self):
         self.year_min_input.value = ""
         self.year_max_input.value = ""
         self.pages_min_input.value = ""
         self.pages_max_input.value = ""
         self.genre_dropdown.value = "Any"
+        self.include_title_switch.value = True
+        self.include_author_switch.value = True
+        self.include_summary_switch.value = True
 
     def _on_filter_change(self, e):
         self.on_filters_change(e)

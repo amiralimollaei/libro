@@ -429,10 +429,9 @@ class LibraryTab(AbstractTab):
             pages_min=self.advanced_search_dialog.pages_min,
             pages_max=self.advanced_search_dialog.pages_max,
             genre=self.advanced_search_dialog.genre_dropdown.value,
-            # TODO: add the missing filters to the GUI
-            include_title=True,
-            include_author=True,
-            include_summary=True
+            include_title=self.advanced_search_dialog.include_title,
+            include_author=self.advanced_search_dialog.include_author,
+            include_summary=self.advanced_search_dialog.include_summary,
         )
 
     def update_books(self, books: dict[int, BookEntry]):
