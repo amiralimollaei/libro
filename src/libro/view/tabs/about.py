@@ -1,5 +1,4 @@
 from functools import partial
-from typing import Callable
 
 import flet as ft
 
@@ -54,7 +53,7 @@ class AboutTab(AbstractTab, CallbackMixin):
                 padding=ft.Padding.symmetric(horizontal=16, vertical=8),
             ),
         )
-        
+
         logo_container = ft.Container(
             border_radius=16,
             clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
