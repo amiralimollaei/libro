@@ -4,6 +4,7 @@ from typing import Callable
 
 import flet as ft
 
+from ...asyncutils import DelayedTaskScheduler
 from ...callbacks import CallbackContext, CallbackMixin
 from ...model import BookEntry, LendingEntry
 from ...storage import JsonIdNumeralStorage, LibroPaths, LibroStorage
@@ -226,7 +227,6 @@ class LendingBookRow(ft.Card, CallbackMixin):
 
 class LendingTab(AbstractTab):
     def __init__(self, **container_kwargs):
-        # Initialize callbacks for the three lending operations
         self.__init_callbacks__([
             OnLendingReturnCtx.id,
             OnLendingEditDueCtx.id,
@@ -257,7 +257,9 @@ class LendingTab(AbstractTab):
     def get_title(self) -> str:
         return "Lending"
 
-    # ---- Registration methods for the Controller ----
+    async def on_focused(self) -> None:
+        # wait for all statistical events to finish before showind the book details dialog
+        await DelayedTaskScheduler.flush_all()
 
     def register_on_lending_return(self, fn: Callable[[OnLendingReturnCtx], None]):
         self.register_callback(OnLendingReturnCtx.id, fn)
@@ -267,8 +269,6 @@ class LendingTab(AbstractTab):
 
     def register_on_lending_remove(self, fn: Callable[[OnLendingRemoveCtx], None]):
         self.register_callback(OnLendingRemoveCtx.id, fn)
-
-    # ---- update entries ----
 
     def update_lending_entries(
         self,
@@ -289,7 +289,7 @@ class LendingTab(AbstractTab):
                 lending_id=lending_id,
             )
 
-            # Wire callbacks — the registered callbacks on LendingTab are forwarded to each row
+            # forward callbacks from the LendingBookRow to LendingTab
             lending_row.register_callback(OnLendingReturnCtx.id, self._run_callbacks)
             lending_row.register_callback(OnLendingEditDueCtx.id, self._run_callbacks)
             lending_row.register_callback(OnLendingRemoveCtx.id, self._run_callbacks)

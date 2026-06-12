@@ -36,6 +36,25 @@ class DelayedTaskScheduler:
         task = asyncio.create_task(runner())
         self._tasks[key] = (task, coro_factory)
 
+    async def flush(self, key: str) -> None:
+        """
+        Cancel the pending delayed task for `key` and execute it immediately.
+        If no task is registered for `key`, this does nothing.
+        """
+        entry = self._tasks.pop(key, None)
+        if entry is None:
+            return
+        task, factory = entry
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+        try:
+            await factory()
+        except Exception:
+            pass
+
     @classmethod
     async def flush_all(cls):
         """
@@ -44,14 +63,5 @@ class DelayedTaskScheduler:
         """
 
         for instance in cls._instances:
-            for key, (task, factory) in list(instance._tasks.items()):
-                task.cancel()
-                try:
-                    await task
-                except asyncio.CancelledError:
-                    pass
-                try:
-                    await factory()
-                except Exception:
-                    pass
-                instance._tasks.pop(key, None)
+            for key in list(instance._tasks.keys()):
+                await instance.flush(key)

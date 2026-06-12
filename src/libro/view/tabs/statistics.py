@@ -3,6 +3,7 @@ from typing import Optional
 
 import flet as ft
 
+from ...asyncutils import DelayedTaskScheduler
 from ...model import PagesInLentPeriodEntry, Statistics
 from ...storage import JsonFileStorage, LibroStorage
 from .base import AbstractTab
@@ -119,6 +120,10 @@ class StatisticsTab(AbstractTab):
 
     def get_title(self) -> str:
         return "Statistics"
+
+    async def on_focused(self) -> None:
+        # wait for all statistical events to finish before showind the book details dialog
+        await DelayedTaskScheduler.flush_all()
 
     def _build_ui(self):
         # overview cards row

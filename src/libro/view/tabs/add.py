@@ -125,6 +125,9 @@ class AddTab(AbstractTab):
 
     def get_title(self) -> str:
         return "Add Book"
+    
+    async def on_focused(self) -> None:
+        pass
 
     def validate_title_input(self, e):
         self.title_input.border_color = None

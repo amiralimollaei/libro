@@ -2,13 +2,15 @@ from typing import Callable, Optional
 
 import flet as ft
 
+from ...asyncutils import DelayedTaskScheduler
 from ...callbacks import CallbackContext, CallbackMixin
+from ...callbacks.statistics import compute_book_statistics
 from ...model import BookEntry, BookFilter
 from ...search.engine import BookSearchEngine
 from ...storage.paths import LibroPaths
 from ..components import BookCover
 from ..dalogs.advancedsearch import AdvancedSearchDialog
-from ..dalogs.bookdetails import BookDetailsDialog
+from ..dalogs.bookdetails import BookDetailsDialog, OnDeleteBookCtx
 from .base import AbstractTab
 
 
@@ -241,19 +243,23 @@ class BookRow(ft.Card, CallbackMixin):
     def register_on_page_read(self, fn: Callable[[OnPageReadCtx], None]):
         self.register_callback(OnPageReadCtx.id, fn)
 
-    def _on_book_click(self, e):
+    async def _on_book_click(self, e):
         """Open the book details dialog when the book row is clicked."""
-        from ...callbacks.statistics import compute_book_statistics
 
-        stats = compute_book_statistics(self.book, self.book_id)
-        dialog = BookDetailsDialog(self.book, self.book_id, statistics=stats)
+        # wait for all statistical events to finish before showind the book details dialog
+        await DelayedTaskScheduler.flush_all()
+
+        dialog = BookDetailsDialog(
+            self.book,
+            self.book_id,
+            statistics=compute_book_statistics(self.book, self.book_id)
+        )
         dialog.register_on_delete_book(self._on_book_delete_confirmed)
 
         self.page.show_dialog(dialog)
 
     def _on_book_delete_confirmed(self, ctx):
         """Handle book deletion from the dialog."""
-        from libro.view.dalogs.bookdetails import OnDeleteBookCtx
         if isinstance(ctx, OnDeleteBookCtx):
             self._run_callbacks(OnBookRemoveCtx(ctx.book_id))
 
@@ -377,11 +383,16 @@ class LibraryTab(AbstractTab):
 
         super().__init__(content=self.main_column, **container_kwargs)
 
+    # ---- implement AbstractTab ----
+    
     def register_page(self, page: ft.Page):
         return
 
     def get_title(self) -> str:
         return "Library"
+    
+    async def on_focused(self) -> None:
+        pass
 
     # ---- Registration methods for the Controller ----
 

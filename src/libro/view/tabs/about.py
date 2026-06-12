@@ -2,20 +2,17 @@ from functools import partial
 
 import flet as ft
 
-from ...callbacks import CallbackMixin
 from ...storage import LibroPaths
 from .base import AbstractTab
 
 
-class AboutTab(AbstractTab, CallbackMixin):
+class AboutTab(AbstractTab):
     """
     A simple static tab that displays information about the author and GitHub link.
     """
 
     def __init__(self, **container_kwargs):
-        self.__init_callbacks__([
-
-        ])
+        self.__init_callbacks__([])
 
         description = ft.Text(
             "Libro is a personal library manager built with Flet.\n\n"
@@ -87,3 +84,6 @@ class AboutTab(AbstractTab, CallbackMixin):
 
     def get_title(self) -> str:
         return "About"
+
+    async def on_focused(self) -> None:
+        pass
