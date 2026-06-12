@@ -68,6 +68,7 @@ class AboutTab(AbstractTab):
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 spacing=16,
                 expand=True,
+                scroll=ft.ScrollMode.AUTO
             ),
             **container_kwargs
         )
